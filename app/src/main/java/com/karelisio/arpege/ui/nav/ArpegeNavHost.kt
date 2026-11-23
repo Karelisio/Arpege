@@ -35,6 +35,8 @@ import com.karelisio.arpege.ui.training.RhythmScreen
 import com.karelisio.arpege.ui.training.SolfegeScreen
 import com.karelisio.arpege.ui.theory.CircleScreen
 import com.karelisio.arpege.ui.theory.ScalesScreen
+import com.karelisio.arpege.ui.theory.ProgressionsScreen
+import com.karelisio.arpege.ui.theory.ChordFinderScreen
 
 private fun NavGraphBuilder.screen(
     route: String,
@@ -86,6 +88,8 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                 ) { entry -> ChordsScreen(back, entry.arguments?.getString("name")) }
                 screen(Routes.SCALES) { ScalesScreen(back) { open(Routes.chords(it)) } }
                 screen(Routes.CIRCLE) { CircleScreen(back) { open(Routes.chords(it)) } }
+                screen(Routes.PROGRESSIONS) { ProgressionsScreen(back) { open(Routes.chords(it)) } }
+                screen(Routes.CHORD_FINDER) { ChordFinderScreen(back) { open(Routes.chords(it)) } }
                 screen(Routes.EAR) { EarScreen(back) }
                 screen(Routes.RHYTHM) { RhythmScreen(back) }
                 screen(Routes.SOLFEGE) { SolfegeScreen(back) }

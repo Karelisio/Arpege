@@ -11,13 +11,14 @@ entraînement et journal de pratique musicale. Locale, sans compte, hors ligne. 
 
 ## Modules
 - `:theory` — Kotlin/JVM pur, **aucune dépendance Android** :
-  `Note/Pitch/Interval/Chord/Scale/Key/Clef/Tuning`, `VoicingGenerator`, `dsp/` (YIN, synthèse,
-  métronome), `training/` (oreille, rythme, solfège), `song/` (ChordPro, ASCII, Guitar Pro),
-  `practice/` (stats du journal).
+  `Note/Pitch/Interval/Chord/Scale/Key/Clef/Tuning`, `VoicingGenerator`, `ChordIdentifier`, `Progression`,
+  `dsp/` (YIN, synthèse, métronome, `ProgressionAudio` boucle, `NoteStream` rendu en flux), `training/`
+  (oreille, rythme, solfège), `song/` (ChordPro, ASCII, Guitar Pro + `GuitarProTimeline`), `practice/`.
 - `:app` — UI et intégration Android :
   - `data/` `AppContainer` (DI manuelle, `context.container`), `SettingsRepository` (DataStore),
     `db/` Room, `PracticeRepository` + `TrackPractice`, `StatsRepository`
-  - `audio/` `TunerEngine` (AudioRecord), `SoundPlayer`, `MetronomeEngine/Controller/Service`
+  - `audio/` `TunerEngine` (AudioRecord), `SoundPlayer` (tampon unique), `StreamPlayer` (flux/boucle),
+    `MetronomeEngine/Controller/Service`
   - `ui/<feature>/` un package par écran ; `ui/draw/` manche, clavier, diagrammes, portée Bravura ;
     `ui/components/` ; `ui/nav/` (routes, sections, NavHost, shared elements) ; `ui/theme/`
   - `update/` mise à jour in-app ; `widget/` Glance

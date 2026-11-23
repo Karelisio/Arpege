@@ -11,8 +11,8 @@ Kotlin · Jetpack Compose · Material 3 Expressive · Room · DataStore · Glanc
 
 | Section | Contenu |
 |---|---|
-| Outils | Accordeur YIN (source UNPROCESSED si dispo), 7 accordages + chromatique, La4 432–446 Hz, note de référence, courbe de justesse (5 s), mode stroboscope · Métronome 20–300 BPM à l'échantillon près : grande roue crantée autour du tempo (toucher le centre = lecture/pause), ±1, tap tempo, subdivisions, accents par temps, mesures simples/composées/irrégulières, tempos favoris, accélération progressive (+N BPM toutes les M mesures), minuteur de séance (arrêt + vibration), service de premier plan + notification, tuile Réglages rapides, vibration · Tablatures ASCII, ChordPro et Guitar Pro (GP3–GP5) |
-| Théorie | Accords générés par algorithme (20 types, positions classées par facilité, capo, diagrammes, doigtés, écoute plaquée/arpégée, favoris) · Gammes & modes (14 gammes, manche ou clavier, degrés colorés, accords diatoniques) · Cercle des quintes interactif |
+| Outils | Accordeur YIN (source UNPROCESSED si dispo), 7 accordages + chromatique, La4 432–446 Hz, note de référence, courbe de justesse (5 s), mode stroboscope · Métronome 20–300 BPM à l'échantillon près : grande roue crantée autour du tempo (toucher le centre = lecture/pause), ±1, tap tempo, subdivisions, accents par temps, mesures simples/composées/irrégulières, tempos favoris, accélération progressive (+N BPM toutes les M mesures), minuteur de séance (arrêt + vibration), service de premier plan + notification, tuile Réglages rapides, vibration · Tablatures ASCII, ChordPro et Guitar Pro (GP3–GP5), lecture audio des pistes Guitar Pro avec curseur synchronisé et vitesse 50–150 % |
+| Théorie | Accords générés par algorithme (20 types, positions classées par facilité, capo, diagrammes, doigtés, écoute plaquée/arpégée, favoris) · Gammes & modes (14 gammes, manche ou clavier, degrés colorés, accords diatoniques) · Cercle des quintes interactif · Grilles d'accords (14 progressions en degrés, 12 tonalités majeures/mineures, chiffrage romain, mini-diagrammes, boucle plaquée/rythmée/arpégée, cordes ou piano, clic, accord en cours surligné) · Accord inverse (cases sur le manche ou touches du clavier → noms d'accords classés, renversements, accords incomplets) |
 | Entraînement | Oreille (intervalles, accords, gammes, cadences ; niveaux, sélection d'éléments, répétition adaptative) · Rythme (lecture Bravura, tap calé sur l'horloge audio, écart en ms) · Solfège (clés de sol, fa, ut 3, ut 4 ; boutons ou clavier ; chrono) · Chante la note (unisson ou intervalle montant/descendant, voix ou instrument au micro, tenue de 0,6 s à ±25 c, octave libre, jauge en direct) |
 | Journal | Séances auto (> 1 min) et manuelles, objectif hebdo, série, heatmap annuelle, stats par instrument et activité · Widget Glance |
 
@@ -88,6 +88,17 @@ L'appli interroge `releases/latest` au plus toutes les 6 h et propose la mise à
 - **Transposition** des tablatures : accords uniquement (les chiffres de tab ne sont pas transposés).
 - **Guitar Pro** : GP3, GP4 et GP5 lus (pistes, mesures, notes, accords, marqueurs), rendus en tablature texte ;
   voix 1 seulement, effets (bends, slides…) ignorés à l'affichage. GPX/GP (6+) non pris en charge.
+- **Lecture Guitar Pro** : piste choisie synthétisée en corde pincée (Karplus-Strong), hauteur = accordage + capo + case,
+  durées depuis valeur/point/n-olet, liaisons prolongées, notes étouffées brèves. Rendu **en flux** (chaque note
+  synthétisée quand la lecture l'atteint, mémoire bornée), curseur calé sur la position audio, défilement auto.
+  Lecture **linéaire** comme l'affichage (reprises non dépliées) ; tempo du fichier, changements de tempo ignorés.
+  Les systèmes de tablature sont coupés à la largeur de l'écran.
+- **Grilles d'accords** : un passage de la grille est rendu dans **un seul tampon** (temps et accords à l'échantillon
+  près, traîne repliée au début) puis rejoué en boucle sans couture par un flux AudioTrack (`StreamPlayer`) ;
+  modifier un réglage relance le rendu. Piano : conduite des voix (renversement le plus proche). Tonalités
+  orthographiées avec le moins d'altérations (Ré♭ majeur, Do♯ mineur).
+- **Accord inverse** : notes hors accord admises seulement à la basse (« D/E ») ; pénalités pour notes absentes
+  (quinte juste peu pénalisée), renversements et types rares. x02010 = Am7 (Am = x02210).
 - **Basse** dans Accords : fondamentale + intervalles sur le manche (pas de « positions »).
 - **Arpège au lancement** : trois notes jouées doucement en ouvrant l'appli, synchronisées avec le logo animé.
 - Les tablatures importées sont copiées dans la base locale (le fichier d'origine n'est plus nécessaire).

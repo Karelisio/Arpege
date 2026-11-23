@@ -13,8 +13,8 @@ data class GpSong(
 
 data class GpMeasureHeader(val numerator: Int, val denominator: Int, val marker: String?, val repeatOpen: Boolean, val repeatClose: Int)
 
-/** [tuning] : hauteurs MIDI des cordes, de la plus aiguë (corde 1) à la plus grave. */
-data class GpTrack(val name: String, val tuning: List<Int>, val percussion: Boolean, val measures: List<List<GpBeat>>)
+/** [tuning] : hauteurs MIDI des cordes, de la plus aiguë (corde 1) à la plus grave. [capo] : case du capodastre. */
+data class GpTrack(val name: String, val tuning: List<Int>, val percussion: Boolean, val measures: List<List<GpBeat>>, val capo: Int = 0)
 
 /** [value] : 1 = ronde, 2 = blanche, 4 = noire, 8 = croche… */
 data class GpBeat(
@@ -131,7 +131,7 @@ class GuitarProReader private constructor(private val data: ByteArray) {
             prevNum = num; prevDen = den
         }
 
-        data class TrackInfo(val name: String, val tuning: List<Int>, val percussion: Boolean)
+        data class TrackInfo(val name: String, val tuning: List<Int>, val percussion: Boolean, val capo: Int)
         val infos = (1..trackCount).map { number ->
             if (isV5 && (number == 1 || isV500)) skip(1)
             val flags = u8()
@@ -142,7 +142,7 @@ class GuitarProReader private constructor(private val data: ByteArray) {
             val channel = i32() - 1
             i32() // canal d'effets
             i32() // nombre de cases
-            i32() // capo
+            val capo = i32()
             skip(4) // couleur
             if (isV5) {
                 i16(); u8(); u8(); u8(); i32(); i32(); i32(); skip(12)
@@ -150,7 +150,7 @@ class GuitarProReader private constructor(private val data: ByteArray) {
                 if (isV500) { i16(); skip(1) } else i32()
                 if (!isV500) { repeat(4) { i8() }; intByteSizeString(); intByteSizeString() }
             }
-            TrackInfo(name.trim(), tuning, flags and 1 != 0 || channel == 9)
+            TrackInfo(name.trim(), tuning, flags and 1 != 0 || channel == 9, capo.coerceIn(0, 24))
         }
         if (isV5) skip(if (isV500) 2 else 1)
 
@@ -169,7 +169,7 @@ class GuitarProReader private constructor(private val data: ByteArray) {
                 trackMeasures[t] += resolveTies(first, trackMeasures[t])
             }
         }
-        val tracks = infos.mapIndexed { i, info -> GpTrack(info.name, info.tuning, info.percussion, trackMeasures[i]) }
+        val tracks = infos.mapIndexed { i, info -> GpTrack(info.name, info.tuning, info.percussion, trackMeasures[i], info.capo) }
         return GpSong(title.trim(), artist.trim(), tempo, headers, tracks)
     }
 

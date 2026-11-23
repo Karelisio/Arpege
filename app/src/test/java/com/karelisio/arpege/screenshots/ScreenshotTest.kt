@@ -22,6 +22,12 @@ import com.karelisio.arpege.ui.theme.ArpegeTheme
 import com.karelisio.arpege.ui.theory.ChordsScreen
 import com.karelisio.arpege.ui.theory.CircleScreen
 import com.karelisio.arpege.ui.theory.ScalesScreen
+import com.karelisio.arpege.ui.theory.ProgressionsScreen
+import com.karelisio.arpege.ui.theory.ChordFinderScreen
+import com.karelisio.arpege.ui.tabs.TabViewer
+import com.karelisio.arpege.data.db.TabFile
+import java.io.ByteArrayOutputStream
+import java.util.Base64
 import com.karelisio.arpege.ui.training.EarScreen
 import com.karelisio.arpege.ui.training.RhythmScreen
 import com.karelisio.arpege.ui.training.SolfegeScreen
@@ -65,7 +71,7 @@ import java.io.File
 class ScreenshotTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun shot(name: String, dark: Boolean = false, content: @Composable () -> Unit) {
+    private fun shot(name: String, dark: Boolean = false, settleMs: Long = 0, content: @Composable () -> Unit) {
         rule.setContent {
             ArpegeTheme(darkTheme = dark, dynamicColor = false) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) { content() }
@@ -73,6 +79,12 @@ class ScreenshotTest {
         }
         rule.mainClock.advanceTimeBy(2500)
         rule.waitForIdle()
+        if (settleMs > 0) {
+            // Calculs en arrière-plan (positions d'accords) : on leur laisse le temps d'aboutir.
+            Thread.sleep(settleMs)
+            rule.mainClock.advanceTimeBy(600)
+            rule.waitForIdle()
+        }
         val dir = File(System.getProperty("screenshots.dir") ?: "build/screenshots").apply { mkdirs() }
         File(dir, "$name.png").outputStream().use { rule.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
@@ -126,5 +138,42 @@ class ScreenshotTest {
             ReminderSettings(AppSettings(reminderEnabled = true, reminderMinutes = 18 * 60 + 30))
             BackupSettings(SnackbarHostState())
         }
+    }
+
+    @Test fun progressions() = shot("14_progressions", settleMs = 1500) { ProgressionsScreen({}, {}) }
+    @Test fun progressionsDark() = shot("14_progressions_dark", dark = true, settleMs = 1500) { ProgressionsScreen({}, {}) }
+    @Test fun chordFinder() = shot("15_chord_finder") { ChordFinderScreen({}, initialFrets = "x32010") {} }
+    @Test fun tabGuitarPro() = shot("16_tab_guitar_pro") {
+        val file = TabFile(id = 1, title = "Essai", format = "GUITAR_PRO", content = Base64.getEncoder().encodeToString(gp3Riff()), sourceName = "essai.gp3")
+        TabViewer(file, {}, previewBeat = 11)
+    }
+
+    /** Petit GP3 : 4 mesures de croches (riff en Mi), accord sur chaque mesure. */
+    private fun gp3Riff(): ByteArray {
+        val out = ByteArrayOutputStream()
+        fun u8(v: Int) = out.write(v and 0xFF)
+        fun i32(v: Int) { u8(v); u8(v shr 8); u8(v shr 16); u8(v shr 24) }
+        fun bss(s: String, size: Int) { u8(s.length); out.write(s.toByteArray()); repeat(size - s.length) { u8(0) } }
+        fun ibss(s: String) { i32(s.length + 1); bss(s, s.length) }
+        bss("FICHIER GUITAR PRO v3.00", 30)
+        listOf("Riff d'essai", "", "Demo", "", "", "", "", "").forEach { ibss(it) } // ASCII : 1 octet par caractère
+        i32(0); u8(0); i32(110); i32(0)
+        repeat(64) { i32(25); repeat(8) { u8(0) } }
+        i32(4); i32(1)
+        repeat(4) { if (it == 0) { u8(3); u8(4); u8(4) } else u8(0) }
+        u8(0); bss("Guitare", 40); i32(6)
+        listOf(64, 59, 55, 50, 45, 40, 0).forEach { i32(it) }
+        i32(1); i32(1); i32(2); i32(24); i32(0); repeat(4) { u8(0) }
+        val chords = listOf("Em", "G", "D", "C")
+        val riff = listOf(6 to 0, 4 to 2, 3 to 0, 2 to 0, 1 to 0, 2 to 0, 3 to 0, 4 to 2)
+        for (m in 0 until 4) {
+            i32(riff.size)
+            riff.forEachIndexed { i, (string, fret) ->
+                u8(if (i == 0) 2 else 0); u8(1)
+                if (i == 0) { u8(0); ibss(chords[m]); i32(0) }
+                u8(1 shl (7 - string)); u8(32); u8(1); u8(fret + if (string == 6 || i == 0) 0 else m % 2)
+            }
+        }
+        return out.toByteArray()
     }
 }

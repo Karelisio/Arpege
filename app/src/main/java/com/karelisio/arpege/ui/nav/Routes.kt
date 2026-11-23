@@ -5,6 +5,8 @@ import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.DonutLarge
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Hearing
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MusicNote
@@ -29,6 +31,8 @@ object Routes {
     const val CHORDS = "chords"
     const val SCALES = "scales"
     const val CIRCLE = "circle"
+    const val PROGRESSIONS = "progressions"
+    const val CHORD_FINDER = "chordfinder"
     const val EAR = "ear"
     const val RHYTHM = "rhythm"
     const val SOLFEGE = "solfege"
@@ -59,6 +63,8 @@ enum class Section(val route: String, val label: String, val icon: ImageVector, 
             ToolEntry(Routes.CHORDS, "Accords", "Positions générées, tous instruments", Icons.Rounded.Piano),
             ToolEntry(Routes.SCALES, "Gammes & modes", "Sur le manche ou le clavier", Icons.AutoMirrored.Rounded.QueueMusic),
             ToolEntry(Routes.CIRCLE, "Cercle des quintes", "Armures, relatives, voisines", Icons.Rounded.DonutLarge),
+            ToolEntry(Routes.PROGRESSIONS, "Grilles d'accords", "Progressions transposables, en boucle", Icons.Rounded.GridView),
+            ToolEntry(Routes.CHORD_FINDER, "Accord inverse", "Quel est cet accord ?", Icons.Rounded.Search),
         ),
     ),
     TRAINING(

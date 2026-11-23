@@ -12,13 +12,15 @@ entraînement et journal de pratique musicale. Locale, sans compte, hors ligne. 
 
 ## Modules
 - `:theory` — Kotlin/JVM pur, **aucune dépendance Android** :
-  `Note/Pitch/Interval/Chord/Scale/Key/Clef/Tuning`, `VoicingGenerator`, `dsp/` (YIN, synthèse,
-  métronome, courbe de justesse, strobe), `training/` (oreille, rythme, solfège, chant + `HoldDetector`),
-  `song/` (ChordPro, ASCII, Guitar Pro), `practice/` (stats du journal, planification du rappel).
+  `Note/Pitch/Interval/Chord/Scale/Key/Clef/Tuning`, `VoicingGenerator`, `ChordIdentifier`, `Progression`,
+  `dsp/` (YIN, synthèse, métronome, courbe de justesse, strobe, `ProgressionAudio` boucle, `NoteStream` flux),
+  `training/` (oreille, rythme, solfège, chant + `HoldDetector`), `song/` (ChordPro, ASCII, Guitar Pro +
+  `GuitarProTimeline`), `practice/` (stats du journal, planification du rappel).
 - `:app` — UI et intégration Android :
   - `data/` `AppContainer` (DI manuelle, `context.container`), `SettingsRepository` (DataStore),
     `db/` Room, `PracticeRepository` + `TrackPractice`, `StatsRepository`, `backup/` (export/import JSON)
-  - `audio/` `TunerEngine` (AudioRecord, `timedPitches()` horodaté), `SoundPlayer`, `MetronomeEngine/Controller/Service/TileService`
+  - `audio/` `TunerEngine` (AudioRecord, `timedPitches()` horodaté), `SoundPlayer` (tampon unique),
+    `StreamPlayer` (flux/boucle), `MetronomeEngine/Controller/Service/TileService`
     (planning modifié uniquement sur le thread audio ; `MetronomeSchedule.retimed` = transition au temps suivant)
   - `reminder/` rappel quotidien (AlarmManager + `ReminderReceiver`, re-planifié au boot)
   - `ui/<feature>/` un package par écran ; `ui/draw/` manche, clavier, diagrammes, portée Bravura ;

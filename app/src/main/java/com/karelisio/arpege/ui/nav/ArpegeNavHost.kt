@@ -26,6 +26,9 @@ import com.karelisio.arpege.ui.settings.SettingsScreen
 import com.karelisio.arpege.ui.permissions.PermissionsScreen
 import com.karelisio.arpege.ui.tuner.TunerScreen
 import com.karelisio.arpege.ui.metronome.MetronomeScreen
+import com.karelisio.arpege.ui.theory.ChordsScreen
+import com.karelisio.arpege.ui.theory.CircleScreen
+import com.karelisio.arpege.ui.theory.ScalesScreen
 
 private fun NavGraphBuilder.screen(
     route: String,
@@ -70,9 +73,9 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                     "${Routes.CHORDS}?name={name}",
                     arguments = listOf(navArgument("name") { type = NavType.StringType; nullable = true; defaultValue = null }),
                     deepLinks = listOf(navDeepLink { uriPattern = "arpege://chord?name={name}" }),
-                ) { ComingSoon("Accords", back, "tool-${Routes.CHORDS}") }
-                screen(Routes.SCALES) { ComingSoon("Gammes & modes", back, "tool-${Routes.SCALES}") }
-                screen(Routes.CIRCLE) { ComingSoon("Cercle des quintes", back, "tool-${Routes.CIRCLE}") }
+                ) { entry -> ChordsScreen(back, entry.arguments?.getString("name")) }
+                screen(Routes.SCALES) { ScalesScreen(back) { open(Routes.chords(it)) } }
+                screen(Routes.CIRCLE) { CircleScreen(back) { open(Routes.chords(it)) } }
                 screen(Routes.EAR) { ComingSoon("Oreille", back, "tool-${Routes.EAR}") }
                 screen(Routes.RHYTHM) { ComingSoon("Rythme", back, "tool-${Routes.RHYTHM}") }
                 screen(Routes.SOLFEGE) { ComingSoon("Solfège", back, "tool-${Routes.SOLFEGE}") }

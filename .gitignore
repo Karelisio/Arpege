@@ -13,3 +13,4 @@ build/
 keystore.properties
 *.apk
 *.aab
+.claude/worktrees/

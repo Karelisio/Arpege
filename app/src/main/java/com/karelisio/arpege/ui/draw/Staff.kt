@@ -6,8 +6,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import com.karelisio.arpege.theory.Letter
-import com.karelisio.arpege.theory.Pitch
+import com.karelisio.arpege.theory.Clef
 import com.karelisio.arpege.ui.theme.Bravura
 
 /** Glyphes SMuFL (police Bravura). */
@@ -37,22 +36,13 @@ object Smufl {
     const val TUPLET_3 = ""
 }
 
-/** Clés : ligne de référence de la clé (en pas de portée depuis la ligne du bas = 0). */
-enum class Clef(val label: String, val glyph: String, val glyphStep: Int, val bottomLine: Pitch) {
-    TREBLE("Sol", Smufl.G_CLEF, 2, Pitch(com.karelisio.arpege.theory.Note(Letter.E), 4)),
-    BASS("Fa", Smufl.F_CLEF, 6, Pitch(com.karelisio.arpege.theory.Note(Letter.G), 2)),
-    ALTO("Ut 3", Smufl.C_CLEF, 4, Pitch(com.karelisio.arpege.theory.Note(Letter.F), 3)),
-    TENOR("Ut 4", Smufl.C_CLEF, 6, Pitch(com.karelisio.arpege.theory.Note(Letter.D), 3));
-
-    /** Pas de portée d'une hauteur (0 = ligne du bas, 8 = ligne du haut). */
-    fun step(p: Pitch): Int = (p.note.letter.ordinal + 7 * p.octave) - (bottomLine.note.letter.ordinal + 7 * bottomLine.octave)
-
-    /** Hauteur naturelle (sans altération) située au pas donné. */
-    fun pitchAt(step: Int): Pitch {
-        val idx = bottomLine.note.letter.ordinal + 7 * bottomLine.octave + step
-        return Pitch(com.karelisio.arpege.theory.Note(Letter.entries[Math.floorMod(idx, 7)]), Math.floorDiv(idx, 7))
-    }
+/** Glyphe SMuFL d'une clé et pas de portée de sa ligne de référence. */
+val Clef.glyph: String get() = when (this) {
+    Clef.TREBLE -> Smufl.G_CLEF
+    Clef.BASS -> Smufl.F_CLEF
+    Clef.ALTO, Clef.TENOR -> Smufl.C_CLEF
 }
+val Clef.glyphStep: Int get() = refStep
 
 /** Géométrie d'une portée : [top] = y de la ligne du haut, [space] = interligne. */
 class StaffGeometry(val left: Float, val right: Float, val top: Float, val space: Float) {

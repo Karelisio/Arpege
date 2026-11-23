@@ -28,6 +28,9 @@ import com.karelisio.arpege.ui.tuner.TunerScreen
 import com.karelisio.arpege.ui.metronome.MetronomeScreen
 import com.karelisio.arpege.ui.theory.ChordsScreen
 import com.karelisio.arpege.ui.journal.JournalScreen
+import com.karelisio.arpege.ui.training.EarScreen
+import com.karelisio.arpege.ui.training.RhythmScreen
+import com.karelisio.arpege.ui.training.SolfegeScreen
 import com.karelisio.arpege.ui.theory.CircleScreen
 import com.karelisio.arpege.ui.theory.ScalesScreen
 
@@ -77,9 +80,9 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                 ) { entry -> ChordsScreen(back, entry.arguments?.getString("name")) }
                 screen(Routes.SCALES) { ScalesScreen(back) { open(Routes.chords(it)) } }
                 screen(Routes.CIRCLE) { CircleScreen(back) { open(Routes.chords(it)) } }
-                screen(Routes.EAR) { ComingSoon("Oreille", back, "tool-${Routes.EAR}") }
-                screen(Routes.RHYTHM) { ComingSoon("Rythme", back, "tool-${Routes.RHYTHM}") }
-                screen(Routes.SOLFEGE) { ComingSoon("Solfège", back, "tool-${Routes.SOLFEGE}") }
+                screen(Routes.EAR) { EarScreen(back) }
+                screen(Routes.RHYTHM) { RhythmScreen(back) }
+                screen(Routes.SOLFEGE) { SolfegeScreen(back) }
                 screen(Routes.SETTINGS) { SettingsScreen(onBack = back, onPermissions = { open(Routes.PERMISSIONS) }) }
                 screen(Routes.PERMISSIONS) { PermissionsScreen(back) }
             }

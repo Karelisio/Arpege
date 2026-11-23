@@ -27,7 +27,13 @@ class SoundPlayer(context: Context) {
     private var job: Job? = null
 
     /** Joue un tampon ; [onStart] est appelé au démarrage effectif (synchro des animations). */
-    fun play(buffer: FloatArray, onStart: () -> Unit = {}) {
+    fun play(buffer: FloatArray, onStart: () -> Unit = {}) = playTimed(buffer) { onStart() }
+
+    /**
+     * Comme [play], mais [onStart] reçoit l'instant (System.nanoTime / CLOCK_MONOTONIC) où le
+     * premier échantillon sort réellement du haut-parleur, estimé via AudioTimestamp.
+     */
+    fun playTimed(buffer: FloatArray, onStart: (Long) -> Unit) {
         stop()
         if (buffer.isEmpty()) return
         job = scope.launch {
@@ -52,7 +58,16 @@ class SoundPlayer(context: Context) {
             t.write(buffer, 0, buffer.size, AudioTrack.WRITE_BLOCKING)
             track = t
             t.play()
-            withContext(Dispatchers.Main) { onStart() }
+            val ts = android.media.AudioTimestamp()
+            var startNanos = System.nanoTime()
+            for (i in 0 until 50) {
+                if (t.getTimestamp(ts) && ts.framePosition > 0) {
+                    startNanos = ts.nanoTime - ts.framePosition * 1_000_000_000L / sampleRate
+                    break
+                }
+                delay(5)
+            }
+            withContext(Dispatchers.Main) { onStart(startNanos) }
             delay(buffer.size * 1000L / sampleRate + 100)
             if (track === t) track = null
             runCatching { t.stop() }
@@ -89,6 +104,14 @@ class SoundPlayer(context: Context) {
             play(Synth.sequence(events, voice, sampleRate), onStart)
         }
     }
+
+    /** Événements arbitraires (entraîneurs). */
+    fun playEvents(events: List<NoteEvent>, voice: Voice, onStart: (Long) -> Unit = {}) {
+        scope.launch { playTimed(Synth.sequence(events, voice, sampleRate), onStart) }
+    }
+
+    /** Tampon déjà rendu, avec horodatage précis du début. */
+    fun playBuffer(buffer: FloatArray, onStart: (Long) -> Unit = {}) = playTimed(buffer, onStart)
 
     fun playFrequency(freq: Double, seconds: Double = 2.5, voice: Voice = Voice.SINE) {
         scope.launch { play(Synth.render(voice, freq, sampleRate, seconds, 0.8)) }

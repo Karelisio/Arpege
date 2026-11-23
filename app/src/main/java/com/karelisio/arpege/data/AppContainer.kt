@@ -21,6 +21,7 @@ class AppContainer(context: Context) {
     val updates: UpdateManager by lazy { UpdateManager(appContext, settings, scope) }
     val sound: SoundPlayer by lazy { SoundPlayer(appContext) }
     val practice = PracticeRepository(this)
+    val stats = StatsRepository(this)
     val metronome: MetronomeController by lazy { MetronomeController(appContext) }
 
     /** Appelé après chaque modification du journal (rafraîchit le widget). */

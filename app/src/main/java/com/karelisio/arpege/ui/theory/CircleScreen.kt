@@ -56,7 +56,9 @@ import com.karelisio.arpege.theory.Key
 import com.karelisio.arpege.theory.Notation
 import com.karelisio.arpege.ui.components.ToolScaffold
 import com.karelisio.arpege.ui.components.rememberHaptics
-import com.karelisio.arpege.ui.draw.Clef
+import com.karelisio.arpege.theory.Clef
+import com.karelisio.arpege.ui.draw.glyph
+import com.karelisio.arpege.ui.draw.glyphStep
 import com.karelisio.arpege.ui.draw.Smufl
 import com.karelisio.arpege.ui.draw.StaffGeometry
 import com.karelisio.arpege.ui.draw.drawGlyph

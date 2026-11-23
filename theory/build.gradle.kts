@@ -16,3 +16,8 @@ kotlin {
 dependencies {
     testImplementation(libs.junit)
 }
+
+tasks.test {
+    System.getProperty("gp.samples")?.let { systemProperty("gp.samples", it) }
+    testLogging { showStandardStreams = true }
+}

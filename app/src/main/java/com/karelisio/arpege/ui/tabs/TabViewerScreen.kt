@@ -69,7 +69,11 @@ import com.karelisio.arpege.data.db.TabFile
 import com.karelisio.arpege.theory.Chord
 import com.karelisio.arpege.theory.Instrument
 import com.karelisio.arpege.theory.Tuning
+import com.karelisio.arpege.theory.song.GuitarProReader
+import com.karelisio.arpege.theory.song.GuitarProTab
 import com.karelisio.arpege.theory.song.Song
+import java.util.Base64
+import androidx.compose.material3.FilterChip
 import com.karelisio.arpege.theory.song.SongFormat
 import com.karelisio.arpege.theory.song.SongLine
 import com.karelisio.arpege.theory.song.parseSong
@@ -98,7 +102,15 @@ private fun TabViewer(file: TabFile, onBack: () -> Unit) {
     val settings by c.settings.settings.collectAsStateWithLifecycle(AppSettings())
     val haptics = rememberHaptics()
     val format = runCatching { SongFormat.valueOf(file.format) }.getOrDefault(SongFormat.ASCII)
-    val base = remember(file.id) { parseSong(file.content, format, file.title) }
+    val gp = remember(file.id) {
+        if (format == SongFormat.GUITAR_PRO) runCatching { GuitarProReader.read(Base64.getDecoder().decode(file.content)) }.getOrNull() else null
+    }
+    val gpTracks = remember(gp) { gp?.let { GuitarProTab.playableTracks(it) } ?: emptyList() }
+    var gpTrack by rememberSaveable { mutableIntStateOf(-1) }
+    val trackIndex = if (gpTrack >= 0) gpTrack else gpTracks.firstOrNull() ?: 0
+    val base = remember(file.id, trackIndex) {
+        if (gp != null) GuitarProTab.toSong(gp, trackIndex) else parseSong(file.content, format, file.title)
+    }
     var transpose by rememberSaveable { mutableIntStateOf(file.transpose) }
     var speed by rememberSaveable { mutableFloatStateOf(file.scrollSpeed) }
     var scrolling by rememberSaveable { mutableStateOf(false) }
@@ -165,8 +177,13 @@ private fun TabViewer(file: TabFile, onBack: () -> Unit) {
     ) { p ->
         Column(
             Modifier.fillMaxSize().padding(p).verticalScroll(scroll).padding(horizontal = 16.dp, vertical = 8.dp)
-                .then(if (format == SongFormat.ASCII) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
+                .then(if (format != SongFormat.CHORDPRO) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
         ) {
+            if (gp != null && gpTracks.size > 1) Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 8.dp)) {
+                gpTracks.forEach { i ->
+                    FilterChip(selected = i == trackIndex, onClick = { gpTrack = i }, label = { Text(gp.tracks[i].name.ifBlank { "Piste ${i + 1}" }) })
+                }
+            }
             SongContent(song, format, fontSize) { sheetChord = it }
             Box(Modifier.height(240.dp))
         }
@@ -204,8 +221,8 @@ private fun SongContent(song: Song, format: SongFormat, fontSize: Float, onChord
                 is SongLine.Comment -> Text(line.text, fontStyle = FontStyle.Italic, fontSize = fontSize.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 is SongLine.Tab -> Text(line.text, fontFamily = mono, fontSize = (fontSize * 0.9f).sp, softWrap = false,
                     modifier = if (format == SongFormat.CHORDPRO) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
-                is SongLine.Text -> Text(line.text, fontSize = fontSize.sp, fontFamily = if (format == SongFormat.ASCII) mono else null,
-                    softWrap = format != SongFormat.ASCII,
+                is SongLine.Text -> Text(line.text, fontSize = fontSize.sp, fontFamily = if (format != SongFormat.CHORDPRO) mono else null,
+                    softWrap = format == SongFormat.CHORDPRO,
                     modifier = if (line.chorus) Modifier.padding(start = 12.dp) else Modifier)
                 is SongLine.ChordLine -> {
                     val text = buildAnnotatedString {

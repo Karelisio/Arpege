@@ -44,7 +44,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.karelisio.arpege.data.container
 import com.karelisio.arpege.data.db.TabFile
+import com.karelisio.arpege.theory.song.GuitarProReader
 import com.karelisio.arpege.theory.song.SongFormat
+import java.util.Base64
 import com.karelisio.arpege.theory.song.parseSong
 import com.karelisio.arpege.ui.components.ShapedIcon
 import com.karelisio.arpege.ui.components.ToolScaffold
@@ -76,7 +78,7 @@ fun TabsLibraryScreen(onBack: () -> Unit, onOpen: (Long) -> Unit) {
             }
             val msg = buildString {
                 if (imported > 0) append("$imported fichier(s) importé(s)")
-                if (rejected > 0) { if (isNotEmpty()) append(" · "); append("$rejected non pris en charge (.txt, .cho, .chopro, .pro)") }
+                if (rejected > 0) { if (isNotEmpty()) append(" · "); append("$rejected non pris en charge (.txt, .cho, .chopro, .pro, .gp3–.gp5)") }
             }
             if (msg.isNotEmpty()) snackbar.showSnackbar(msg)
         }
@@ -88,7 +90,7 @@ fun TabsLibraryScreen(onBack: () -> Unit, onOpen: (Long) -> Unit) {
                 Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     ShapedIcon(Icons.Rounded.MusicNote, shape = MaterialShapes.Clover8Leaf, size = 96.dp)
                     Text("Ta bibliothèque est vide", style = MaterialTheme.typography.titleLarge)
-                    Text("Importe des tablatures texte (.txt) ou ChordPro (.cho, .chopro, .pro) depuis tes fichiers. Aucune autorisation de stockage n'est nécessaire.",
+                    Text("Importe des tablatures texte (.txt), ChordPro (.cho, .chopro, .pro) ou Guitar Pro (.gp3 à .gp5) depuis tes fichiers. Aucune autorisation de stockage n'est nécessaire.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -139,6 +141,13 @@ private fun readTab(context: Context, uri: Uri): TabFile? {
     val format = SongFormat.fromFileName(name) ?: return null
     val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
     if (bytes.size > 2_000_000) return null
+    if (format == SongFormat.GUITAR_PRO) {
+        val gp = runCatching { GuitarProReader.read(bytes) }.getOrNull() ?: return null
+        return TabFile(
+            title = gp.title.ifBlank { name.substringBeforeLast('.') }, artist = gp.artist, format = format.name,
+            content = Base64.getEncoder().encodeToString(bytes), sourceName = name,
+        )
+    }
     val text = decode(bytes)
     val song = parseSong(text, format, name.substringBeforeLast('.'))
     return TabFile(title = song.title, artist = song.artist, format = format.name, content = text, sourceName = name)

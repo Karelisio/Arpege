@@ -11,7 +11,7 @@ Kotlin · Jetpack Compose · Material 3 Expressive · Room · DataStore · Glanc
 
 | Section | Contenu |
 |---|---|
-| Outils | Accordeur YIN (source UNPROCESSED si dispo), 7 accordages + chromatique, La4 432–446 Hz, note de référence · Métronome 20–300 BPM à l'échantillon près, tap tempo, roue, subdivisions, accents par temps, mesures simples/composées/irrégulières, service de premier plan + notification, vibration · Tablatures ASCII, ChordPro et Guitar Pro (GP3–GP5) |
+| Outils | Accordeur YIN (source UNPROCESSED si dispo), 7 accordages + chromatique, La4 432–446 Hz, note de référence · Métronome 20–300 BPM à l'échantillon près : grande roue crantée autour du tempo (toucher le centre = lecture/pause), ±1, tap tempo, subdivisions, accents par temps, mesures simples/composées/irrégulières, tempos favoris, accélération progressive (+N BPM toutes les M mesures), minuteur de séance (arrêt + vibration), service de premier plan + notification, tuile Réglages rapides, vibration · Tablatures ASCII, ChordPro et Guitar Pro (GP3–GP5) |
 | Théorie | Accords générés par algorithme (20 types, positions classées par facilité, capo, diagrammes, doigtés, écoute plaquée/arpégée, favoris) · Gammes & modes (14 gammes, manche ou clavier, degrés colorés, accords diatoniques) · Cercle des quintes interactif |
 | Entraînement | Oreille (intervalles, accords, gammes, cadences ; niveaux, sélection d'éléments, répétition adaptative) · Rythme (lecture Bravura, tap calé sur l'horloge audio, écart en ms) · Solfège (clés de sol, fa, ut 3, ut 4 ; boutons ou clavier ; chrono) |
 | Journal | Séances auto (> 1 min) et manuelles, objectif hebdo, série, heatmap annuelle, stats par instrument et activité · Widget Glance |
@@ -26,6 +26,9 @@ Réglages : notation Do Ré Mi / C D E, instrument principal, La4, objectif, vib
 | `arpege://metronome` | Ouvre le métronome |
 | `arpege://metronome?bpm=120` | Règle le tempo et lance le métronome |
 | `arpege://chord?name=Am7` | Ouvre l'accord (noms anglais ou latins : `Ré7`, `Bbmaj7`, `D/F%23`) |
+
+Raccourcis d'icône (appui long) « Accordeur » et « Métronome » (`res/xml/shortcuts.xml`, mêmes liens),
+et tuile Réglages rapides « Métronome » qui lance/arrête le métronome.
 
 ⚠️ Encoder `#` en `%23` dans l'URL (`C%23m7`), sinon il est lu comme un fragment.
 Exemple depuis une autre appli : `startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("arpege://metronome?bpm=90")))`.
@@ -68,7 +71,17 @@ L'appli interroge `releases/latest` au plus toutes les 6 h et propose la mise à
 - **BPM entier** : l'ordonnancement du métronome est alors exact en arithmétique entière (aucune dérive).
 - Mesures composées (6/8, 9/8, 12/8) et irrégulières (5/8, 7/8…) : le BPM porte sur l'unité (croche en x/8) ;
   accents moyens sur chaque groupe (ex. 7/8 = 2+2+3), modifiables temps par temps.
-- Changement de tempo en lecture : pris en compte au temps suivant, sans perdre la position dans la mesure.
+- Changement de tempo en lecture : pris en compte au temps suivant, sans perdre la position dans la mesure ;
+  l'ancienne grille reste en vigueur jusque-là (aucun clic ajouté ni perdu). Le planning n'est modifié que
+  par le thread audio, avant chaque tampon.
+- **Accélération progressive** : le palier tombe exactement sur le premier temps de la mesure (calcul dans
+  `:theory`, aucun timer) ; un réglage manuel la relance depuis ce tempo ; à l'arrêt, retour au tempo de départ.
+- **Minuteur de séance** : 5–60 min, compté à partir du lancement (une pause le réarme) ; compte à rebours
+  natif dans la notification.
+- **Favoris** : tempo + mesure (regroupement par défaut) + subdivision, sérialisés en une chaîne DataStore ;
+  accents personnalisés non enregistrés. Appui long = suppression (annulable).
+- **Audio robuste** : AudioTrack basse latence, repli sans mode basse latence si refusé ; toute erreur arrête
+  le flux sans planter. Sans autorisation de notifier, le service tourne quand même (notification masquée).
 - **Journal automatique** : temps passé au premier plan sur un outil/exercice (≥ 1 min) ; le métronome compte
   son temps de lecture réel (même écran éteint). Ajout manuel : aujourd'hui, hier ou avant-hier.
 - **Accords en tablature** : affichés tels qu'écrits (formes relatives au capo indiqué dans le fichier).

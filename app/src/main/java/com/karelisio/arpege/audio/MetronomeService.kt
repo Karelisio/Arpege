@@ -7,8 +7,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.net.Uri
+import androidx.core.net.toUri
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
@@ -17,28 +18,35 @@ import com.karelisio.arpege.MainActivity
 import com.karelisio.arpege.R
 import com.karelisio.arpege.data.container
 import com.karelisio.arpege.theory.dsp.TempoNames
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Service de premier plan (mediaPlayback) : le métronome continue écran éteint. */
+/**
+ * Service de premier plan (mediaPlayback) : le métronome continue écran éteint.
+ * Sans l'autorisation de notifier (Android 13+), le service tourne quand même : la notification
+ * est simplement masquée par le système. Aucune erreur système ne doit faire planter l'appli.
+ */
 class MetronomeService : LifecycleService() {
     private var wakeLock: PowerManager.WakeLock? = null
     private val controller get() = container.metronome
 
     override fun onCreate() {
         super.onCreate()
-        createChannel()
-        ServiceCompat.startForeground(this, NOTIF_ID, buildNotification(controller.state.value), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        runCatching { createChannel() }.onFailure { Log.w(TAG, "Canal de notification", it) }
+        goForeground()
         lifecycleScope.launch {
+            // StateFlow est conflué : au plus ~4 mises à jour par seconde, la dernière gagne.
             controller.state.collect { s ->
-                getSystemService(NotificationManager::class.java).notify(NOTIF_ID, buildNotification(s))
+                runCatching { getSystemService(NotificationManager::class.java)?.notify(NOTIF_ID, buildNotification(s)) }
                 if (s.playing) acquireWakeLock() else releaseWakeLock()
+                delay(250)
             }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        ServiceCompat.startForeground(this, NOTIF_ID, buildNotification(controller.state.value), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+        goForeground()
         when (intent?.action) {
             ACTION_TOGGLE -> controller.toggle()
             ACTION_MINUS -> controller.nudge(-5)
@@ -54,19 +62,29 @@ class MetronomeService : LifecycleService() {
         super.onDestroy()
     }
 
+    private fun goForeground() {
+        runCatching {
+            ServiceCompat.startForeground(
+                this, NOTIF_ID, buildNotification(controller.state.value), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK,
+            )
+        }.onFailure { Log.w(TAG, "Passage au premier plan refusé", it) }
+    }
+
     private fun acquireWakeLock() {
         if (wakeLock?.isHeld == true) return
-        wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
-            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Arpege:metronome").apply { acquire(4 * 60 * 60 * 1000L) }
+        wakeLock = runCatching {
+            (getSystemService(Context.POWER_SERVICE) as PowerManager)
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Arpege:metronome").apply { acquire(4 * 60 * 60 * 1000L) }
+        }.getOrNull()
     }
 
     private fun releaseWakeLock() {
-        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock?.let { runCatching { if (it.isHeld) it.release() } }
         wakeLock = null
     }
 
     private fun createChannel() {
-        val nm = getSystemService(NotificationManager::class.java)
+        val nm = getSystemService(NotificationManager::class.java) ?: return
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL, getString(R.string.notif_channel_metronome), NotificationManager.IMPORTANCE_LOW).apply {
                 setShowBadge(false)
@@ -82,14 +100,19 @@ class MetronomeService : LifecycleService() {
     private fun buildNotification(s: MetronomeState): Notification {
         val open = PendingIntent.getActivity(
             this, 0,
-            Intent(Intent.ACTION_VIEW, Uri.parse("arpege://metronome"), this, MainActivity::class.java),
+            Intent(Intent.ACTION_VIEW, "arpege://metronome".toUri(), this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val cfg = s.config
-        return NotificationCompat.Builder(this, CHANNEL)
+        val text = when {
+            !s.playing -> "En pause"
+            s.trainerStartBpm != null && cfg.bpm < s.trainer.maxBpm -> "${TempoNames.of(cfg.bpm)} · accélération jusqu'à ${s.trainer.maxBpm}"
+            else -> TempoNames.of(cfg.bpm)
+        }
+        val b = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle("${cfg.bpm} BPM · ${cfg.meter.label}")
-            .setContentText(if (s.playing) TempoNames.of(cfg.bpm) else "En pause")
+            .setContentText(text)
             .setContentIntent(open)
             .setOngoing(s.playing)
             .setOnlyAlertOnce(true)
@@ -101,10 +124,15 @@ class MetronomeService : LifecycleService() {
             .addAction(0, "+5", action(ACTION_PLUS))
             .addAction(0, "Fermer", action(ACTION_STOP))
             .setStyle(androidx.media.app.NotificationCompat.MediaStyle().setShowActionsInCompactView(0, 1, 2))
-            .build()
+        // Minuteur de séance : compte à rebours natif, sans mise à jour par seconde.
+        val end = s.timerEndsAt
+        if (s.playing && end != null) b.setWhen(end).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true)
+        else b.setShowWhen(false)
+        return b.build()
     }
 
     companion object {
+        private const val TAG = "MetronomeService"
         private const val CHANNEL = "metronome"
         private const val NOTIF_ID = 42
         const val ACTION_TOGGLE = "com.karelisio.arpege.metronome.TOGGLE"

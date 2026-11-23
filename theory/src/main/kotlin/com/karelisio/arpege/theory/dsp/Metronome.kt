@@ -50,8 +50,18 @@ data class Tick(val index: Long, val beat: Int, val sub: Int, val accent: Accent
 /**
  * Ordonnanceur à l'échantillon près. La position du tick n est calculée directement depuis n
  * (jamais par accumulation) : aucune dérive, même sur des heures.
+ *
+ * Un changement de réglages produit un nouveau planning qui ne s'applique qu'à partir de
+ * [startFrame] (un temps) ; avant, c'est [previous] qui reste en vigueur : aucun clic n'est
+ * ajouté ni perdu pendant la transition.
  */
-class MetronomeSchedule(val sampleRate: Int, val config: MetronomeConfig, val originFrame: Long = 0) {
+class MetronomeSchedule(
+    val sampleRate: Int,
+    val config: MetronomeConfig,
+    val originFrame: Long = 0,
+    val startFrame: Long = originFrame,
+    val previous: MetronomeSchedule? = null,
+) {
     private val num = sampleRate.toLong() * 60L              // échantillons par minute
     private val den = config.bpm.toLong() * config.subdivision // ticks par minute
     val ticksPerBar: Int get() = config.meter.beats * config.subdivision
@@ -68,19 +78,53 @@ class MetronomeSchedule(val sampleRate: Int, val config: MetronomeConfig, val or
         return n
     }
 
+    /** Planning effectivement en vigueur à l'échantillon [frame]. */
+    fun at(frame: Long): MetronomeSchedule {
+        var s = this
+        while (frame < s.startFrame) s = s.previous ?: break
+        return s
+    }
+
     /**
      * Nouvel ordonnancement pour [newConfig] prenant effet au premier temps après [atFrame] :
      * pas d'à-coup, et la position dans la mesure est conservée si la mesure ne change pas.
+     * Les transitions encore à venir de ce planning sont remplacées.
      */
     fun retimed(newConfig: MetronomeConfig, atFrame: Long): MetronomeSchedule {
-        val sub = config.subdivision
-        var n = tickAt(atFrame) + 1
+        val base = at(atFrame)
+        val sub = base.config.subdivision
+        var n = base.tickAt(atFrame) + 1
         while (n % sub != 0L) n++
-        val beatFrame = tickFrame(n)
+        val beatFrame = base.tickFrame(n)
         val globalBeat = n / sub
-        val keep = if (config.meter == newConfig.meter) globalBeat % newConfig.meter.beats else 0L
+        val keep = if (base.config.meter == newConfig.meter) globalBeat % newConfig.meter.beats else 0L
         val probe = MetronomeSchedule(sampleRate, newConfig, 0)
-        return MetronomeSchedule(sampleRate, newConfig, beatFrame - probe.tickFrame(keep * newConfig.subdivision))
+        return MetronomeSchedule(
+            sampleRate, newConfig,
+            originFrame = beatFrame - probe.tickFrame(keep * newConfig.subdivision),
+            startFrame = beatFrame,
+            previous = at(beatFrame - 1),
+        )
+    }
+
+    /** Oublie les plannings entièrement révolus avant [horizon] (évite une chaîne sans fin). */
+    fun pruned(horizon: Long): MetronomeSchedule {
+        val p = previous ?: return this
+        if (startFrame <= horizon) return MetronomeSchedule(sampleRate, config, originFrame, startFrame, null)
+        val pp = p.pruned(horizon)
+        return if (pp === p) this else MetronomeSchedule(sampleRate, config, originFrame, startFrame, pp)
+    }
+
+    /** Premier échantillon ≥ [from] où commence une mesure (transitions comprises). */
+    fun nextBarFrame(from: Long): Long {
+        val p = previous
+        if (p != null && from < startFrame) {
+            val f = p.nextBarFrame(from)
+            if (f < startFrame) return f
+        }
+        val n = tickAt(maxOf(from, startFrame) - 1) + 1 // premier tick ≥ from
+        val bar = (n + ticksPerBar - 1) / ticksPerBar
+        return tickFrame(bar * ticksPerBar)
     }
 
     fun tick(n: Long): Tick {
@@ -111,17 +155,31 @@ class MetronomeRenderer(sampleRate: Int) {
     }
 
     /** Remplit [out] pour les échantillons [startFrame, startFrame + out.size). */
-    fun render(out: FloatArray, startFrame: Long) {
+    fun render(out: FloatArray, startFrame: Long) = render(out, startFrame, schedule)
+
+    /** Idem avec un planning explicite (chaque planning de la chaîne joue sur sa plage). */
+    fun render(out: FloatArray, startFrame: Long, schedule: MetronomeSchedule?) {
         out.fill(0f)
-        val s = schedule ?: return
-        val end = startFrame + out.size
-        var n = maxOf(0L, s.tickAt(startFrame - maxLen))
+        var s = schedule ?: return
+        var until = startFrame + out.size
+        while (true) {
+            mixTicks(s, out, startFrame, s.startFrame, until)
+            if (s.startFrame <= startFrame - maxLen) break
+            until = minOf(until, s.startFrame)
+            s = s.previous ?: break
+        }
+    }
+
+    /** Mixe les ticks de [s] commençant dans [from, until). */
+    private fun mixTicks(s: MetronomeSchedule, out: FloatArray, startFrame: Long, from: Long, until: Long) {
+        if (until <= from) return
+        var n = maxOf(0L, s.tickAt(maxOf(startFrame - maxLen, from)))
         while (true) {
             val f = s.tickFrame(n)
-            if (f >= end) break
-            val click = clickFor(s.tick(n))
-            if (click != null && f + click.size > startFrame) {
-                Synth.mix(out, click, (f - startFrame).toInt(), 1f)
+            if (f >= until) break
+            if (f >= from) {
+                val click = clickFor(s.tick(n))
+                if (click != null && f + click.size > startFrame) Synth.mix(out, click, (f - startFrame).toInt(), 1f)
             }
             n++
         }

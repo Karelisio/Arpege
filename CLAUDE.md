@@ -7,6 +7,7 @@ entraînement et journal de pratique musicale. Locale, sans compte, hors ligne. 
 - `./gradlew assembleRelease lint testDebugUnitTest :theory:test` — vérification complète (= CI)
 - `./gradlew :theory:test` — tests du moteur (JVM pur, rapide)
 - `./gradlew :app:testDebugUnitTest -Pscreenshots` — captures PNG des écrans dans `build/screenshots`
+  (`MetronomeScreenshotTest` : métronome avec barres système + navigation, comme sur téléphone)
 - Échantillons Guitar Pro locaux : `./gradlew :theory:test -Dgp.samples=/chemin`
 
 ## Modules
@@ -17,7 +18,8 @@ entraînement et journal de pratique musicale. Locale, sans compte, hors ligne. 
 - `:app` — UI et intégration Android :
   - `data/` `AppContainer` (DI manuelle, `context.container`), `SettingsRepository` (DataStore),
     `db/` Room, `PracticeRepository` + `TrackPractice`, `StatsRepository`
-  - `audio/` `TunerEngine` (AudioRecord), `SoundPlayer`, `MetronomeEngine/Controller/Service`
+  - `audio/` `TunerEngine` (AudioRecord), `SoundPlayer`, `MetronomeEngine/Controller/Service/TileService`
+    (planning modifié uniquement sur le thread audio ; `MetronomeSchedule.retimed` = transition au temps suivant)
   - `ui/<feature>/` un package par écran ; `ui/draw/` manche, clavier, diagrammes, portée Bravura ;
     `ui/components/` ; `ui/nav/` (routes, sections, NavHost, shared elements) ; `ui/theme/`
   - `update/` mise à jour in-app ; `widget/` Glance
@@ -30,6 +32,7 @@ entraînement et journal de pratique musicale. Locale, sans compte, hors ligne. 
 - Animations : respecter `LocalReduceMotion` ; haptique via `rememberHaptics()`.
 - Notation via `Note.name(notation)` ; glyphes SMuFL dans `Smufl` (échappements `\uE…`).
 - Dépendances uniquement dans `gradle/libs.versions.toml`.
+- Raccourcis d'icône : `res/xml/shortcuts.xml` (deep links `arpege://…`).
 - Room : schéma exporté dans `app/schemas/` ; toute modification = nouvelle version + migration.
 - Lint bloquant (`abortOnError`).
 

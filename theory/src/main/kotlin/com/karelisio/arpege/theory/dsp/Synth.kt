@@ -61,7 +61,7 @@ object Synth {
     fun piano(frequency: Double, sampleRate: Int, durationSec: Double, velocity: Double = 0.8): FloatArray {
         val total = (durationSec * sampleRate).toInt()
         val out = FloatArray(total)
-        val b = 0.0004 // inharmonicité
+        val b = 0.00008 // inharmonicité légère (reste juste à l'oreille et au détecteur)
         val partials = (1..10).filter { it * frequency < sampleRate * 0.45 }
         val attack = (0.004 * sampleRate).toInt().coerceAtLeast(1)
         for (k in partials) {
@@ -69,9 +69,19 @@ object Synth {
             val amp = velocity * (1.0 / k) * (if (k == 1) 1.0 else 0.6) * exp(-0.15 * k * (1 - velocity))
             val tau = (1.8 * 261.6 / frequency).coerceIn(0.3, 4.0) / (1 + 0.5 * (k - 1))
             val w = 2 * PI * fk / sampleRate
+            // Oscillateur récursif (rotation) et enveloppe multiplicative : pas de sin/exp par échantillon.
+            val c = cos(w); val s = sin(w)
+            var re = 1.0; var im = 0.0
+            val decay = exp(-1.0 / (tau * sampleRate))
+            var env = amp
             for (t in 0 until total) {
-                val env = (if (t < attack) t.toDouble() / attack else 1.0) * exp(-t / (tau * sampleRate))
-                out[t] += (amp * env * sin(w * t)).toFloat()
+                val a = if (t < attack) t.toDouble() / attack else 1.0
+                out[t] += (env * a * im).toFloat()
+                val nre = re * c - im * s
+                im = re * s + im * c
+                re = nre
+                env *= decay
+                if ((t and 4095) == 0) { val m = sqrt(re * re + im * im); re /= m; im /= m }
             }
         }
         normalizePeak(out, 0.6f * velocity.toFloat())

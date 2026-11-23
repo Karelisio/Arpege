@@ -1,6 +1,12 @@
 package com.karelisio.arpege.ui
 
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.karelisio.arpege.data.CrashReporter
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
@@ -59,4 +65,25 @@ fun ArpegeRoot(nav: NavHostController, onboardingDone: Boolean) {
     }
 
     UpdateSheet(state = update, onDownload = c.updates::download, onDismiss = c.updates::dismiss)
+    CrashReportDialog()
+}
+
+/** Propose de partager le rapport du dernier plantage (local, jamais envoyé automatiquement). */
+@Composable
+private fun CrashReportDialog() {
+    val context = LocalContext.current
+    var report by remember { mutableStateOf(CrashReporter.pending(context)) }
+    val r = report ?: return
+    AlertDialog(
+        onDismissRequest = { CrashReporter.clear(context); report = null },
+        title = { Text("Arpège s'est arrêté") },
+        text = { Text("L'appli a planté lors de la dernière utilisation. Tu peux partager le rapport (texte, aucune donnée personnelle) pour aider à corriger le problème.") },
+        confirmButton = {
+            TextButton(onClick = {
+                runCatching { context.startActivity(CrashReporter.shareIntent(r)) }
+                CrashReporter.clear(context); report = null
+            }) { Text("Partager") }
+        },
+        dismissButton = { TextButton(onClick = { CrashReporter.clear(context); report = null }) { Text("Ignorer") } },
+    )
 }

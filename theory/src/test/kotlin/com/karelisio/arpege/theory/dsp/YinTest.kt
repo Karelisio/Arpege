@@ -31,5 +31,12 @@ class YinTest {
         assertEquals(45.0, frequencyToMidi(est.frequency), 0.1)
     }
 
+    @Test fun detectsPianoNote() {
+        val sr = 48000
+        val buf = Synth.piano(440.0, sr, 0.6)
+        val est = YinPitchDetector(sr, 4096).detect(buf.copyOfRange(4000, 4000 + 4096))!!
+        assertEquals(0.0, cents(est.frequency, 440.0), 3.0)
+    }
+
     @Test fun silenceGivesNothing() = assertNull(YinPitchDetector(44100, 4096).detect(FloatArray(4096)))
 }

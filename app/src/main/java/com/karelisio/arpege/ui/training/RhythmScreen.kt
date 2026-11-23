@@ -25,6 +25,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
@@ -96,6 +97,7 @@ fun RhythmScreen(onBack: () -> Unit) {
     var playhead by remember { mutableFloatStateOf(-1f) }
     val taps = remember { mutableStateListOf<Long>() }
     val pad = remember { Animatable(1f) }
+    val snackbar = remember { SnackbarHostState() }
 
     val beatMs = 60000.0 / bpm.roundToInt()
 
@@ -113,10 +115,7 @@ fun RhythmScreen(onBack: () -> Unit) {
         return out
     }
 
-    fun start(demo: Boolean) {
-        taps.clear(); result = null
-        phase = Phase.COUNT_IN
-        c.sound.playBuffer(buildBuffer(demo)) { startNanos ->
+    fun begin(demo: Boolean, startNanos: Long) {
             barStartMs = startNanos / 1_000_000 + (4 * beatMs).toLong()
             scope.launch {
                 // Tête de lecture et fin de mesure calées sur l'horloge audio.
@@ -137,10 +136,23 @@ fun RhythmScreen(onBack: () -> Unit) {
                 c.stats.record("rhythm", "L$level", r.accuracy >= 80)
                 if (r.accuracy >= 80) haptics.confirm() else haptics.reject()
             }
-        }
     }
 
-    ToolScaffold(title = "Rythme", onBack = onBack, sharedKey = "tool-rhythm") { p ->
+    fun start(demo: Boolean) {
+        taps.clear(); result = null
+        phase = Phase.COUNT_IN
+        c.sound.playBuffer(
+            buildBuffer(demo),
+            onStart = { startNanos -> begin(demo, startNanos) },
+            onError = {
+                // Sortie audio indisponible : l'exercice fonctionne quand même, décompte visuel.
+                scope.launch { snackbar.showSnackbar("Son indisponible : décompte visuel uniquement") }
+                begin(demo, System.nanoTime() + 300_000_000L)
+            },
+        )
+    }
+
+    ToolScaffold(title = "Rythme", onBack = onBack, sharedKey = "tool-rhythm", snackbar = snackbar) { p ->
         Column(
             Modifier.fillMaxSize().padding(p).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -193,7 +205,7 @@ fun RhythmScreen(onBack: () -> Unit) {
             ) {
                 Text(
                     when (phase) {
-                        Phase.COUNT_IN -> "Décompte…"
+                        Phase.COUNT_IN -> if (playhead in -1f..0f) "${kotlin.math.floor((playhead + 1) * 4).toInt() + 1}…" else "Décompte…"
                         Phase.PLAYING -> "Tape !"
                         else -> "Zone de tap"
                     },

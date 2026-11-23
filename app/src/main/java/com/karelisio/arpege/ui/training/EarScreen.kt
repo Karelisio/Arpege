@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +64,7 @@ fun EarScreen(onBack: () -> Unit) {
     val haptics = rememberHaptics()
     val scope = rememberCoroutineScope()
     val random = remember { Random(System.nanoTime()) }
+    val snackbar = remember { SnackbarHostState() }
 
     var mode by rememberSaveable { mutableStateOf(EarMode.INTERVALS) }
     var level by rememberSaveable { mutableIntStateOf(1) }
@@ -85,7 +87,9 @@ fun EarScreen(onBack: () -> Unit) {
         val events = q.blocks.flatMapIndexed { i, block ->
             block.map { m -> NoteEvent(i * step, midiToFrequency(m.toDouble(), settings.a4.toDouble()), step * if (i == q.blocks.lastIndex) 2.0 else 1.3, 0.7) }
         }
-        c.sound.playEvents(events, Voice.PIANO)
+        c.sound.playEvents(events, Voice.PIANO, onError = {
+            scope.launch { snackbar.showSnackbar("Son indisponible : vérifie le volume média et réessaie") }
+        })
     }
 
     fun next() {
@@ -113,7 +117,7 @@ fun EarScreen(onBack: () -> Unit) {
         question = null; answered = null
     }
 
-    ToolScaffold(title = "Oreille", onBack = onBack, sharedKey = "tool-ear") { p ->
+    ToolScaffold(title = "Oreille", onBack = onBack, sharedKey = "tool-ear", snackbar = snackbar) { p ->
         Column(
             Modifier.fillMaxSize().padding(p).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),

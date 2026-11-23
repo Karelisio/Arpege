@@ -26,6 +26,30 @@ import com.karelisio.arpege.ui.training.EarScreen
 import com.karelisio.arpege.ui.training.RhythmScreen
 import com.karelisio.arpege.ui.training.SolfegeScreen
 import com.karelisio.arpege.ui.tuner.TunerScreen
+import com.karelisio.arpege.ui.tuner.CentsTraceChart
+import com.karelisio.arpege.ui.tuner.StrobeBand
+import com.karelisio.arpege.ui.training.SingPanel
+import com.karelisio.arpege.ui.training.SingPhase
+import com.karelisio.arpege.ui.training.SingScreen
+import com.karelisio.arpege.ui.settings.BackupSettings
+import com.karelisio.arpege.ui.settings.ReminderSettings
+import com.karelisio.arpege.data.AppSettings
+import com.karelisio.arpege.theory.Notation
+import com.karelisio.arpege.theory.dsp.CentsTrace
+import com.karelisio.arpege.theory.training.EarItem
+import com.karelisio.arpege.theory.training.HoldDetector
+import com.karelisio.arpege.theory.training.SingQuestion
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.unit.dp
+import kotlin.math.sin
+import com.karelisio.arpege.data.container
+import kotlinx.coroutines.runBlocking
+import org.robolectric.RuntimeEnvironment
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,4 +91,40 @@ class ScreenshotTest {
     @Test fun tabs() = shot("11_tabs") { TabsLibraryScreen({}, {}) }
     @Test fun onboarding() = shot("12_onboarding") { OnboardingScreen {} }
     @Test fun settings() = shot("13_settings") { SettingsScreen({}, {}) }
+    @Test fun sing() = shot("14_sing") { SingScreen {} }
+    private val singQuestion = SingQuestion(EarItem("i7+", "Quinte juste ↑"), 48, 55)
+    @Test fun singActive() = shot("14_sing_active") {
+        Column(Modifier.padding(20.dp)) {
+            SingPanel(singQuestion, SingPhase.SINGING, HoldDetector.State(54.9, -10.0, true, 0.6f, false), Notation.LATIN, octaveFree = true)
+        }
+    }
+    @Test fun singDone() = shot("14_sing_done", dark = true) {
+        Column(Modifier.padding(20.dp)) {
+            SingPanel(singQuestion, SingPhase.SUCCESS, HoldDetector.State(55.0, 0.0, true, 1f, true), Notation.ENGLISH, octaveFree = false)
+        }
+    }
+    @Test fun tunerStrobeMode() {
+        val settings = RuntimeEnvironment.getApplication().container.settings
+        runBlocking { settings.setTunerStrobe(true) }
+        try {
+            shot("02_tuner_strobe") { TunerScreen {} }
+        } finally {
+            runBlocking { settings.setTunerStrobe(false) }
+        }
+    }
+    @Test fun tunerVisuals() = shot("02_tuner_strobe_trace", dark = true) {
+        val trace = CentsTrace()
+        for (t in 0L..4_000L step 23) trace.add(t, if (t in 1_800L..2_100L) null else 14 * sin(t / 600.0) - t / 400.0 + 4)
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            StrobeBand({ 0.3 }, inTune = false, active = true, modifier = Modifier.fillMaxWidth().height(120.dp))
+            StrobeBand({ 0.0 }, inTune = true, active = true, modifier = Modifier.fillMaxWidth().height(120.dp))
+            CentsTraceChart({ trace.segments() }, { 4_200L }, trace.windowMs)
+        }
+    }
+    @Test fun reminderBackup() = shot("13_settings_reminder") {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            ReminderSettings(AppSettings(reminderEnabled = true, reminderMinutes = 18 * 60 + 30))
+            BackupSettings(SnackbarHostState())
+        }
+    }
 }

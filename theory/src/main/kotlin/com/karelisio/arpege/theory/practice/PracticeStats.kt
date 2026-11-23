@@ -38,6 +38,9 @@ class PracticeStats(sessions: List<SessionLite>, private val zone: ZoneId = Zone
         return n
     }
 
+    /** Vrai si au moins une séance a eu lieu le jour donné. */
+    fun practicedOn(date: LocalDate): Boolean = list.any { it.durationSec > 0 && day(it) == date }
+
     fun bestStreak(): Int {
         val days = list.map { day(it) }.toSortedSet()
         var best = 0; var cur = 0; var prev: LocalDate? = null

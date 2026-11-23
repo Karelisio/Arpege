@@ -5,6 +5,7 @@ import com.karelisio.arpege.ArpegeApp
 import com.karelisio.arpege.audio.MetronomeController
 import com.karelisio.arpege.audio.SoundPlayer
 import com.karelisio.arpege.data.db.ArpegeDatabase
+import com.karelisio.arpege.reminder.Reminders
 import com.karelisio.arpege.update.UpdateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -23,6 +24,11 @@ class AppContainer(context: Context) {
     val practice = PracticeRepository(this)
     val stats = StatsRepository(this)
     val metronome: MetronomeController by lazy { MetronomeController(appContext) }
+
+    init {
+        // Re-planifie le rappel quotidien à chaque lancement (alarme perdue après un arrêt forcé).
+        scope.launch { runCatching { settings.current().let { Reminders.apply(appContext, it.reminderEnabled, it.reminderMinutes) } } }
+    }
 
     /** Appelé après chaque modification du journal (rafraîchit le widget). */
     fun onPracticeChanged() {

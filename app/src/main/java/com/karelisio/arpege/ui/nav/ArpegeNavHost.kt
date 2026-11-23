@@ -33,6 +33,7 @@ import com.karelisio.arpege.ui.tabs.TabsLibraryScreen
 import com.karelisio.arpege.ui.training.EarScreen
 import com.karelisio.arpege.ui.training.RhythmScreen
 import com.karelisio.arpege.ui.training.SolfegeScreen
+import com.karelisio.arpege.ui.training.SingScreen
 import com.karelisio.arpege.ui.theory.CircleScreen
 import com.karelisio.arpege.ui.theory.ScalesScreen
 
@@ -89,6 +90,7 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                 screen(Routes.EAR) { EarScreen(back) }
                 screen(Routes.RHYTHM) { RhythmScreen(back) }
                 screen(Routes.SOLFEGE) { SolfegeScreen(back) }
+                screen(Routes.SING) { SingScreen(back) }
                 screen(Routes.SETTINGS) { SettingsScreen(onBack = back, onPermissions = { open(Routes.PERMISSIONS) }) }
                 screen(Routes.PERMISSIONS) { PermissionsScreen(back) }
             }

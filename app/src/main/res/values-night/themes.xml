@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Arpege" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background_night</item>
+    </style>
+
+    <style name="Theme.Arpege.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background_night</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_animated</item>
+        <item name="windowSplashScreenAnimationDuration">900</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.Arpege</item>
+    </style>
+</resources>

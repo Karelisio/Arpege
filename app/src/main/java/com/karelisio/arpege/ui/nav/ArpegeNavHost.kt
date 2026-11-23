@@ -28,6 +28,8 @@ import com.karelisio.arpege.ui.tuner.TunerScreen
 import com.karelisio.arpege.ui.metronome.MetronomeScreen
 import com.karelisio.arpege.ui.theory.ChordsScreen
 import com.karelisio.arpege.ui.journal.JournalScreen
+import com.karelisio.arpege.ui.tabs.TabViewerScreen
+import com.karelisio.arpege.ui.tabs.TabsLibraryScreen
 import com.karelisio.arpege.ui.training.EarScreen
 import com.karelisio.arpege.ui.training.RhythmScreen
 import com.karelisio.arpege.ui.training.SolfegeScreen
@@ -72,7 +74,11 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                     arguments = listOf(navArgument("bpm") { type = NavType.IntType; defaultValue = -1 }),
                     deepLinks = listOf(navDeepLink { uriPattern = "arpege://metronome?bpm={bpm}" }, navDeepLink { uriPattern = "arpege://metronome" }),
                 ) { entry -> MetronomeScreen(back, entry.arguments?.getInt("bpm")?.takeIf { it > 0 }) }
-                screen(Routes.TABS) { ComingSoon("Tablatures", back, "tool-${Routes.TABS}") }
+                screen(Routes.TABS) { TabsLibraryScreen(back) { open(Routes.tab(it)) } }
+                screen(
+                    "${Routes.TAB}/{id}",
+                    arguments = listOf(navArgument("id") { type = NavType.LongType }),
+                ) { entry -> TabViewerScreen(entry.arguments?.getLong("id") ?: 0L, back) }
                 screen(
                     "${Routes.CHORDS}?name={name}",
                     arguments = listOf(navArgument("name") { type = NavType.StringType; nullable = true; defaultValue = null }),

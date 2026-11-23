@@ -68,6 +68,21 @@ class MetronomeSchedule(val sampleRate: Int, val config: MetronomeConfig, val or
         return n
     }
 
+    /**
+     * Nouvel ordonnancement pour [newConfig] prenant effet au premier temps après [atFrame] :
+     * pas d'à-coup, et la position dans la mesure est conservée si la mesure ne change pas.
+     */
+    fun retimed(newConfig: MetronomeConfig, atFrame: Long): MetronomeSchedule {
+        val sub = config.subdivision
+        var n = tickAt(atFrame) + 1
+        while (n % sub != 0L) n++
+        val beatFrame = tickFrame(n)
+        val globalBeat = n / sub
+        val keep = if (config.meter == newConfig.meter) globalBeat % newConfig.meter.beats else 0L
+        val probe = MetronomeSchedule(sampleRate, newConfig, 0)
+        return MetronomeSchedule(sampleRate, newConfig, beatFrame - probe.tickFrame(keep * newConfig.subdivision))
+    }
+
     fun tick(n: Long): Tick {
         val inBar = (n % ticksPerBar).toInt()
         val beat = inBar / config.subdivision

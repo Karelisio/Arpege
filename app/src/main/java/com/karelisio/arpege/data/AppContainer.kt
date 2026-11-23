@@ -2,6 +2,7 @@ package com.karelisio.arpege.data
 
 import android.content.Context
 import com.karelisio.arpege.ArpegeApp
+import com.karelisio.arpege.audio.MetronomeController
 import com.karelisio.arpege.audio.SoundPlayer
 import com.karelisio.arpege.data.db.ArpegeDatabase
 import com.karelisio.arpege.update.UpdateManager
@@ -18,6 +19,7 @@ class AppContainer(context: Context) {
     val updates: UpdateManager by lazy { UpdateManager(appContext, settings, scope) }
     val sound: SoundPlayer by lazy { SoundPlayer(appContext) }
     val practice = PracticeRepository(this)
+    val metronome: MetronomeController by lazy { MetronomeController(appContext) }
 
     /** Appelé après chaque modification du journal (rafraîchit le widget). */
     fun onPracticeChanged() = Unit

@@ -48,6 +48,21 @@ class MetronomeTest {
         assertEquals(-1, s.tickAt(0))
     }
 
+    @Test fun tempoChangeKeepsBarPosition() {
+        val old = MetronomeSchedule(48000, MetronomeConfig(bpm = 120, subdivision = 2))
+        val at = old.tickFrame(9) + 10 // pendant le 5e temps (index 4), 2e croche
+        val new = old.retimed(MetronomeConfig(bpm = 90, subdivision = 3), at)
+        val nextBeatFrame = old.tickFrame(10) // temps index 5
+        val n = new.tickAt(nextBeatFrame)
+        assertEquals(nextBeatFrame, new.tickFrame(n))
+        val t = new.tick(n)
+        assertEquals(1, t.beat) // 5 % 4 = 1 : 2e temps de la mesure
+        assertEquals(0, t.sub)
+        // Changement de mesure : on repart au premier temps.
+        val m = old.retimed(MetronomeConfig(bpm = 120, meter = Meter(3, 4)), at)
+        assertEquals(0, m.tick(m.tickAt(nextBeatFrame)).beat)
+    }
+
     @Test fun accentsFollowGroups() {
         assertEquals(listOf(Accent.STRONG, Accent.WEAK, Accent.MEDIUM, Accent.WEAK, Accent.MEDIUM, Accent.WEAK, Accent.WEAK), Meter(7, 8).defaultAccents())
         assertEquals(listOf(Accent.STRONG, Accent.WEAK, Accent.WEAK, Accent.MEDIUM, Accent.WEAK, Accent.WEAK), Meter(6, 8).defaultAccents())

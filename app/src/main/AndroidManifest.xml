@@ -39,12 +39,18 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="arpege" android:host="tuner" />
-                <data android:scheme="arpege" android:host="metronome" />
-                <data android:scheme="arpege" android:host="chord" />
+                <data android:scheme="arpege" />
+                <data android:host="tuner" />
+                <data android:host="metronome" />
+                <data android:host="chord" />
             </intent-filter>
         </activity>
 
+
+        <service
+            android:name=".audio.MetronomeService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <receiver
             android:name=".update.InstallResultReceiver"

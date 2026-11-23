@@ -1,5 +1,6 @@
 package com.karelisio.arpege.ui.components
 
+import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.animation.core.Animatable
@@ -38,9 +39,15 @@ fun Modifier.cascadeIn(index: Int, stepMs: Long = 45): Modifier {
 class Haptics(private val view: View) {
     fun tick() = view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
     fun click() = view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
-    fun confirm() = view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-    fun reject() = view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-    fun segment() = view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+    fun confirm() = view.performHapticFeedback(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.LONG_PRESS,
+    )
+    fun reject() = view.performHapticFeedback(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS,
+    )
+    fun segment() = view.performHapticFeedback(
+        if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.SEGMENT_FREQUENT_TICK else HapticFeedbackConstants.CLOCK_TICK,
+    )
 }
 
 @Composable

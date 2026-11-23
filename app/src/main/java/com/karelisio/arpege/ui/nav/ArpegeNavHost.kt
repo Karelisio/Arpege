@@ -25,6 +25,7 @@ import com.karelisio.arpege.ui.hub.HubScreen
 import com.karelisio.arpege.ui.settings.SettingsScreen
 import com.karelisio.arpege.ui.permissions.PermissionsScreen
 import com.karelisio.arpege.ui.tuner.TunerScreen
+import com.karelisio.arpege.ui.metronome.MetronomeScreen
 
 private fun NavGraphBuilder.screen(
     route: String,
@@ -63,7 +64,7 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                     "${Routes.METRONOME}?bpm={bpm}",
                     arguments = listOf(navArgument("bpm") { type = NavType.IntType; defaultValue = -1 }),
                     deepLinks = listOf(navDeepLink { uriPattern = "arpege://metronome?bpm={bpm}" }, navDeepLink { uriPattern = "arpege://metronome" }),
-                ) { ComingSoon("Métronome", back, "tool-${Routes.METRONOME}") }
+                ) { entry -> MetronomeScreen(back, entry.arguments?.getInt("bpm")?.takeIf { it > 0 }) }
                 screen(Routes.TABS) { ComingSoon("Tablatures", back, "tool-${Routes.TABS}") }
                 screen(
                     "${Routes.CHORDS}?name={name}",

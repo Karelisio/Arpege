@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.androidx.glance.material3)
     implementation(libs.androidx.splashscreen)
     implementation(libs.androidx.graphics.shapes)
+    implementation(libs.androidx.media)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)

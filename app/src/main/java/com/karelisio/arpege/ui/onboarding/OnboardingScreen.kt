@@ -67,9 +67,9 @@ fun OnboardingScreen(onDone: () -> Unit) {
             TextButton(onClick = onDone) { Text("Passer") }
         }
         HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
-            val offset = (pager.currentPage - page + pager.currentPageOffsetFraction).absoluteValue
             Box(
                 Modifier.fillMaxSize().graphicsLayer {
+                    val offset = (pager.currentPage - page + pager.currentPageOffsetFraction).absoluteValue
                     alpha = 1f - offset.coerceIn(0f, 1f) * 0.6f
                     val s = 1f - offset.coerceIn(0f, 1f) * 0.12f
                     scaleX = s; scaleY = s

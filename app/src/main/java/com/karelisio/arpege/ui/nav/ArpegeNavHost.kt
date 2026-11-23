@@ -27,6 +27,7 @@ import com.karelisio.arpege.ui.permissions.PermissionsScreen
 import com.karelisio.arpege.ui.tuner.TunerScreen
 import com.karelisio.arpege.ui.metronome.MetronomeScreen
 import com.karelisio.arpege.ui.theory.ChordsScreen
+import com.karelisio.arpege.ui.journal.JournalScreen
 import com.karelisio.arpege.ui.theory.CircleScreen
 import com.karelisio.arpege.ui.theory.ScalesScreen
 
@@ -58,7 +59,7 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                 screen(Routes.TOOLS) { HubScreen(Section.TOOLS, open, settings) }
                 screen(Routes.THEORY) { HubScreen(Section.THEORY, open, settings) }
                 screen(Routes.TRAINING) { HubScreen(Section.TRAINING, open, settings) }
-                screen(Routes.JOURNAL) { ComingSoon("Journal", back) }
+                screen(Routes.JOURNAL) { JournalScreen(settings) }
 
                 screen(Routes.TUNER, deepLinks = listOf(navDeepLink { uriPattern = "arpege://tuner" })) {
                     TunerScreen(back)

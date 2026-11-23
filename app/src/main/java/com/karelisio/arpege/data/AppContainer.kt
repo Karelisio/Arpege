@@ -9,6 +9,8 @@ import com.karelisio.arpege.update.UpdateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.karelisio.arpege.widget.ArpegeWidget
 
 /** Injection de dépendances manuelle : un seul conteneur au niveau de l'application. */
 class AppContainer(context: Context) {
@@ -22,7 +24,9 @@ class AppContainer(context: Context) {
     val metronome: MetronomeController by lazy { MetronomeController(appContext) }
 
     /** Appelé après chaque modification du journal (rafraîchit le widget). */
-    fun onPracticeChanged() = Unit
+    fun onPracticeChanged() {
+        scope.launch { ArpegeWidget.refresh(appContext) }
+    }
 }
 
 val Context.container: AppContainer get() = (applicationContext as ArpegeApp).container

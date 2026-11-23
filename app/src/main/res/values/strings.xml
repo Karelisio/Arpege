@@ -4,5 +4,4 @@
     <string name="widget_name">Arpège — pratique</string>
     <string name="widget_description">Série de jours et minutes de la semaine</string>
     <string name="notif_channel_metronome">Métronome</string>
-    <string name="notif_channel_update">Mises à jour</string>
 </resources>

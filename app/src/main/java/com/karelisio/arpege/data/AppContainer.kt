@@ -2,6 +2,7 @@ package com.karelisio.arpege.data
 
 import android.content.Context
 import com.karelisio.arpege.ArpegeApp
+import com.karelisio.arpege.audio.SoundPlayer
 import com.karelisio.arpege.data.db.ArpegeDatabase
 import com.karelisio.arpege.update.UpdateManager
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +16,7 @@ class AppContainer(context: Context) {
     val settings = SettingsRepository(appContext)
     val db: ArpegeDatabase by lazy { ArpegeDatabase.build(appContext) }
     val updates: UpdateManager by lazy { UpdateManager(appContext, settings, scope) }
+    val sound: SoundPlayer by lazy { SoundPlayer(appContext) }
 }
 
 val Context.container: AppContainer get() = (applicationContext as ArpegeApp).container

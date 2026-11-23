@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Raccourcis statiques (appui long sur l'icône) : deep links existants. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_tuner"
+        android:shortcutId="tuner"
+        android:shortcutLongLabel="@string/shortcut_tuner_long"
+        android:shortcutShortLabel="@string/shortcut_tuner_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="arpege://tuner"
+            android:targetClass="com.karelisio.arpege.MainActivity"
+            android:targetPackage="com.karelisio.arpege" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_metronome"
+        android:shortcutId="metronome"
+        android:shortcutLongLabel="@string/shortcut_metronome_long"
+        android:shortcutShortLabel="@string/shortcut_metronome_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="arpege://metronome"
+            android:targetClass="com.karelisio.arpege.MainActivity"
+            android:targetPackage="com.karelisio.arpege" />
+    </shortcut>
+</shortcuts>

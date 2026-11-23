@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.karelisio.arpege.theory.Instrument
 import com.karelisio.arpege.theory.Notation
+import com.karelisio.arpege.theory.dsp.MetronomeFavorite
+import com.karelisio.arpege.theory.dsp.SpeedTrainer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -25,6 +27,11 @@ data class AppSettings(
     val vibrateDownbeat: Boolean = false,
     val onboardingDone: Boolean = false,
     val metronomeBpm: Int = 100,
+    val metronomeFavorites: List<MetronomeFavorite> = emptyList(),
+    val trainerOn: Boolean = false,
+    val trainer: SpeedTrainer = SpeedTrainer(),
+    val timerOn: Boolean = false,
+    val timerMinutes: Int = 20,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -37,6 +44,11 @@ class SettingsRepository(private val context: Context) {
         val onboarding = booleanPreferencesKey("onboarding_done")
         val bpm = intPreferencesKey("metronome_bpm")
         val lastUpdateCheck = longPreferencesKey("last_update_check")
+        val favorites = stringPreferencesKey("metronome_favorites")
+        val trainerOn = booleanPreferencesKey("metronome_trainer_on")
+        val trainer = stringPreferencesKey("metronome_trainer")
+        val timerOn = booleanPreferencesKey("metronome_timer_on")
+        val timerMinutes = intPreferencesKey("metronome_timer_minutes")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { it.toSettings() }
@@ -49,6 +61,11 @@ class SettingsRepository(private val context: Context) {
         vibrateDownbeat = this[K.vibrate] ?: false,
         onboardingDone = this[K.onboarding] ?: false,
         metronomeBpm = this[K.bpm] ?: 100,
+        metronomeFavorites = MetronomeFavorite.decode(this[K.favorites]),
+        trainerOn = this[K.trainerOn] ?: false,
+        trainer = SpeedTrainer.decode(this[K.trainer]) ?: SpeedTrainer(),
+        timerOn = this[K.timerOn] ?: false,
+        timerMinutes = (this[K.timerMinutes] ?: 20).coerceIn(5, 60),
     )
 
     suspend fun current(): AppSettings = settings.first()
@@ -60,6 +77,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setVibrate(v: Boolean) = context.dataStore.edit { it[K.vibrate] = v }
     suspend fun setOnboardingDone(v: Boolean) = context.dataStore.edit { it[K.onboarding] = v }
     suspend fun setMetronomeBpm(v: Int) = context.dataStore.edit { it[K.bpm] = v }
+    /** Modifie les favoris de façon atomique (lecture et écriture dans la même transaction). */
+    suspend fun updateMetronomeFavorites(f: (List<MetronomeFavorite>) -> List<MetronomeFavorite>) = context.dataStore.edit {
+        it[K.favorites] = MetronomeFavorite.encode(f(MetronomeFavorite.decode(it[K.favorites])).take(MetronomeFavorite.MAX_COUNT))
+    }
+    suspend fun setTrainer(on: Boolean, v: SpeedTrainer) = context.dataStore.edit { it[K.trainerOn] = on; it[K.trainer] = v.encode() }
+    suspend fun setTimer(on: Boolean, minutes: Int) = context.dataStore.edit { it[K.timerOn] = on; it[K.timerMinutes] = minutes.coerceIn(5, 60) }
 
     suspend fun lastUpdateCheck(): Long = context.dataStore.data.first()[K.lastUpdateCheck] ?: 0L
     suspend fun setLastUpdateCheck(v: Long) = context.dataStore.edit { it[K.lastUpdateCheck] = v }

@@ -4,4 +4,9 @@
     <string name="widget_name">Arpège — pratique</string>
     <string name="widget_description">Série de jours et minutes de la semaine</string>
     <string name="notif_channel_metronome">Métronome</string>
+    <string name="tile_metronome">Métronome</string>
+    <string name="shortcut_tuner_short">Accordeur</string>
+    <string name="shortcut_tuner_long">Ouvrir l\'accordeur</string>
+    <string name="shortcut_metronome_short">Métronome</string>
+    <string name="shortcut_metronome_long">Ouvrir le métronome</string>
 </resources>

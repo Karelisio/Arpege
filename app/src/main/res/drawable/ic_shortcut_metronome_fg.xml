@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Métronome mécanique (corps, socle, balancier), dans la zone sûre de l'icône adaptative. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path
+        android:pathData="M39,80 L47.5,29 H60.5 L69,80 Z"
+        android:strokeColor="@color/ic_launcher_foreground"
+        android:strokeWidth="5"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M34,80 H74 M54,72 L65,37"
+        android:strokeColor="@color/ic_launcher_foreground"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="@color/ic_launcher_foreground"
+        android:pathData="M57.8,47.5 a4.6,4.6 0 1,0 9.2,0 a4.6,4.6 0 1,0 -9.2,0 Z" />
+</vector>

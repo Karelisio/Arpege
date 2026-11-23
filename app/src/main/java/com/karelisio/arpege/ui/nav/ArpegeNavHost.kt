@@ -23,6 +23,8 @@ import androidx.navigation.navDeepLink
 import com.karelisio.arpege.ui.components.ComingSoon
 import com.karelisio.arpege.ui.hub.HubScreen
 import com.karelisio.arpege.ui.settings.SettingsScreen
+import com.karelisio.arpege.ui.permissions.PermissionsScreen
+import com.karelisio.arpege.ui.tuner.TunerScreen
 
 private fun NavGraphBuilder.screen(
     route: String,
@@ -55,7 +57,7 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                 screen(Routes.JOURNAL) { ComingSoon("Journal", back) }
 
                 screen(Routes.TUNER, deepLinks = listOf(navDeepLink { uriPattern = "arpege://tuner" })) {
-                    ComingSoon("Accordeur", back, "tool-${Routes.TUNER}")
+                    TunerScreen(back)
                 }
                 screen(
                     "${Routes.METRONOME}?bpm={bpm}",
@@ -74,7 +76,7 @@ fun ArpegeNavHost(nav: NavHostController, modifier: Modifier = Modifier) {
                 screen(Routes.RHYTHM) { ComingSoon("Rythme", back, "tool-${Routes.RHYTHM}") }
                 screen(Routes.SOLFEGE) { ComingSoon("Solfège", back, "tool-${Routes.SOLFEGE}") }
                 screen(Routes.SETTINGS) { SettingsScreen(onBack = back, onPermissions = { open(Routes.PERMISSIONS) }) }
-                screen(Routes.PERMISSIONS) { ComingSoon("Autorisations", back) }
+                screen(Routes.PERMISSIONS) { PermissionsScreen(back) }
             }
         }
     }

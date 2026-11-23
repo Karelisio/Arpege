@@ -17,6 +17,10 @@ class AppContainer(context: Context) {
     val db: ArpegeDatabase by lazy { ArpegeDatabase.build(appContext) }
     val updates: UpdateManager by lazy { UpdateManager(appContext, settings, scope) }
     val sound: SoundPlayer by lazy { SoundPlayer(appContext) }
+    val practice = PracticeRepository(this)
+
+    /** Appelé après chaque modification du journal (rafraîchit le widget). */
+    fun onPracticeChanged() = Unit
 }
 
 val Context.container: AppContainer get() = (applicationContext as ArpegeApp).container

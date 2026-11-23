@@ -7,6 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.karelisio.arpege.ui.onboarding.OnboardingScreen
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -19,8 +22,13 @@ import com.karelisio.arpege.update.UpdateSheet
 
 /** Racine : NavigationSuiteScaffold (barre, rail ou tiroir selon la taille d'écran). */
 @Composable
-fun ArpegeRoot(nav: NavHostController) {
+fun ArpegeRoot(nav: NavHostController, onboardingDone: Boolean) {
     val c = LocalContext.current.container
+    val scope = rememberCoroutineScope()
+    if (!onboardingDone) {
+        OnboardingScreen(onDone = { scope.launch { c.settings.setOnboardingDone(true) } })
+        return
+    }
     val entry by nav.currentBackStackEntryAsState()
     val current = Section.of(entry?.destination?.route) ?: Section.TOOLS
     val haptics = rememberHaptics()

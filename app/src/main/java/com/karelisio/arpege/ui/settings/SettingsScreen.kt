@@ -21,6 +21,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,8 +53,9 @@ fun SettingsScreen(onBack: () -> Unit, onPermissions: () -> Unit) {
     val s by c.settings.settings.collectAsStateWithLifecycle(AppSettings())
     val update by c.updates.state.collectAsState()
     val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
 
-    ToolScaffold(title = "Réglages", onBack = onBack) { p ->
+    ToolScaffold(title = "Réglages", onBack = onBack, snackbar = snackbar) { p ->
         Column(
             Modifier.padding(p).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -100,6 +102,8 @@ fun SettingsScreen(onBack: () -> Unit, onPermissions: () -> Unit) {
                     valueRange = 30f..1200f,
                 )
             }
+            Group("Rappel") { ReminderSettings(s) }
+            Group("Sauvegarde") { BackupSettings(snackbar) }
             Card(shape = MaterialTheme.shapes.large) {
                 ListItem(
                     headlineContent = { Text("Vibration sur le temps fort") },

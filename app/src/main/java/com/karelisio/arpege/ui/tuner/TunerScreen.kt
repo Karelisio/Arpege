@@ -1,5 +1,6 @@
 package com.karelisio.arpege.ui.tuner
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -10,21 +11,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.ViewWeek
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledIconButton
@@ -34,23 +38,28 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -65,8 +74,10 @@ import com.karelisio.arpege.data.AppSettings
 import com.karelisio.arpege.data.PracticeActivity
 import com.karelisio.arpege.data.TrackPractice
 import com.karelisio.arpege.data.container
+import com.karelisio.arpege.theory.Notation
 import com.karelisio.arpege.theory.Pitch
 import com.karelisio.arpege.theory.Tuning
+import com.karelisio.arpege.theory.dsp.CentsTrace
 import com.karelisio.arpege.theory.dsp.Voice
 import com.karelisio.arpege.theory.frequencyToMidi
 import com.karelisio.arpege.theory.midiToFrequency
@@ -76,6 +87,7 @@ import com.karelisio.arpege.ui.components.rememberHaptics
 import com.karelisio.arpege.ui.permissions.AppPermission
 import com.karelisio.arpege.ui.permissions.rememberPermissionsController
 import com.karelisio.arpege.ui.theme.LocalReduceMotion
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.abs
@@ -106,13 +118,25 @@ fun TunerScreen(onBack: () -> Unit) {
     var lastHeard by remember { mutableLongStateOf(0L) }
     var smoothMidi by remember { mutableStateOf<Double?>(null) }
 
+    // Courbe de justesse : historique horodaté sur l'horloge de capture.
+    val trace = remember { CentsTrace() }
+    var traceRevision by remember { mutableIntStateOf(0) }
+    var lastSampleMs by remember { mutableLongStateOf(0L) }
+    var frameMs by remember { mutableLongStateOf(0L) }
+    var micError by remember { mutableStateOf(false) }
+
     LaunchedEffect(micGranted, tuningId, settings.a4) {
         if (!micGranted) return@LaunchedEffect
+        trace.clear()
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            engine.pitches().collect { est ->
-                val now = System.currentTimeMillis()
+            engine.timedPitches().catch { micError = true }.collect { tp ->
+                val est = tp.estimate
+                val now = tp.timeNanos / 1_000_000
+                lastSampleMs = now
                 if (est == null || est.clarity < 0.85) {
                     if (now - lastHeard > 900) { reading = null; smoothMidi = null }
+                    trace.add(now, null)
+                    traceRevision++
                     return@collect
                 }
                 val midi = frequencyToMidi(est.frequency, settings.a4.toDouble())
@@ -121,7 +145,7 @@ fun TunerScreen(onBack: () -> Unit) {
                 val s = if (prev == null || abs(prev - midi) > 0.6) midi else prev + 0.3 * (midi - prev)
                 smoothMidi = s
                 lastHeard = now
-                reading = if (chromatic) {
+                val r = if (chromatic) {
                     val nearest = s.roundToInt()
                     TunerReading(Pitch.fromMidi(nearest), midiToFrequency(nearest.toDouble(), settings.a4.toDouble()), (s - nearest) * 100, est.frequency, null)
                 } else {
@@ -129,7 +153,17 @@ fun TunerScreen(onBack: () -> Unit) {
                     val target = tuning.strings[idx]
                     TunerReading(target, target.frequency(settings.a4.toDouble()), (s - target.midi) * 100, est.frequency, idx)
                 }
+                reading = r
+                trace.add(now, r.cents, key = r.target.midi)
+                traceRevision++
             }
+        }
+    }
+    // Défilement fluide de la courbe : horloge d'affichage (même base que l'horloge de capture).
+    LaunchedEffect(micGranted, reduce) {
+        if (!micGranted || reduce) return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) withFrameNanos { frameMs = it / 1_000_000 }
         }
     }
 
@@ -158,6 +192,8 @@ fun TunerScreen(onBack: () -> Unit) {
             }
         } else if (!inTune && (reading == null || abs(reading!!.cents) > 6)) celebrated = false
     }
+    val strobe = settings.tunerStrobe
+    val strobePhase = rememberStrobePhase(reading?.cents, running = strobe && !reduce && reading != null)
 
     ToolScaffold(title = "Accordeur", onBack = onBack, sharedKey = "tool-tuner") { p ->
         Column(
@@ -171,12 +207,26 @@ fun TunerScreen(onBack: () -> Unit) {
                     FilterChip(selected = tuningId == id, onClick = { haptics.tick(); tuningId = id; reading = null }, label = { Text(label) })
                 }
             }
+            // Affichage : aiguille ou stroboscope.
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                listOf(false to "Aiguille", true to "Strobe").forEachIndexed { i, (value, label) ->
+                    SegmentedButton(
+                        selected = strobe == value,
+                        onClick = { haptics.tick(); scope.launch { c.settings.setTunerStrobe(value) } },
+                        shape = SegmentedButtonDefaults.itemShape(i, 2),
+                        icon = { SegmentedButtonDefaults.Icon(strobe == value) { Icon(if (value) Icons.Rounded.ViewWeek else Icons.Rounded.Speed, null) } },
+                    ) { Text(label) }
+                }
+            }
 
-            if (!micGranted) {
+            if (!micGranted || micError) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Le micro est nécessaire pour accorder.", style = MaterialTheme.typography.titleMedium)
-                        Button(onClick = { permissions.request(AppPermission.MICROPHONE) }) { Text("Autoriser le micro") }
+                        Text(
+                            if (micGranted) "Micro indisponible pour le moment." else "Le micro est nécessaire pour accorder.",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        if (!micGranted) Button(onClick = { permissions.request(AppPermission.MICROPHONE) }) { Text("Autoriser le micro") }
                     }
                 }
             }
@@ -186,41 +236,11 @@ fun TunerScreen(onBack: () -> Unit) {
             val good = MaterialTheme.colorScheme.tertiary
             val track = MaterialTheme.colorScheme.outlineVariant
             val noteSize = 150.dp
-            BoxWithConstraints(Modifier.fillMaxWidth().aspectRatio(1.15f)) {
-                val centerYdp = maxHeight * 0.66f
-                Canvas(Modifier.fillMaxSize()) {
-                    val center = Offset(size.width / 2, centerYdp.toPx())
-                    val radius = minOf(size.width * 0.46f, center.y - 8.dp.toPx())
-                    val inner = noteSize.toPx() / 2 + 10.dp.toPx()
-                    for (cent in -50..50 step 5) {
-                        val major = cent % 10 == 0
-                        rotate(cent * 1.2f, pivot = center) {
-                            drawLine(
-                                color = if (abs(cent) <= 3) good else track,
-                                start = Offset(center.x, center.y - radius),
-                                end = Offset(center.x, center.y - radius + if (major) 16.dp.toPx() else 9.dp.toPx()),
-                                strokeWidth = if (major) 5f else 3f, cap = StrokeCap.Round,
-                            )
-                        }
-                    }
-                    rotate(needle.value * 1.2f, pivot = center) {
-                        drawLine(
-                            color = if (inTune) good else primary,
-                            start = Offset(center.x, center.y - inner),
-                            end = Offset(center.x, center.y - radius + 26.dp.toPx()),
-                            strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round,
-                        )
-                    }
-                }
-                Text("♭", style = MaterialTheme.typography.headlineSmall, color = track,
-                    modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = maxHeight * 0.34f))
-                Text("♯", style = MaterialTheme.typography.headlineSmall, color = track,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(end = 8.dp, top = maxHeight * 0.34f))
-                val shapeMorph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Flower) }
+            val shapeMorph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Flower) }
+            // Note dans une forme Material (cercle → fleur quand c'est juste), avec pulsation.
+            val noteBadge: @Composable (Modifier) -> Unit = { m ->
                 Box(
-                    Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = centerYdp - noteSize / 2)
+                    m
                         .size(noteSize)
                         .graphicsLayer {
                             scaleX = pulse.value; scaleY = pulse.value
@@ -234,11 +254,58 @@ fun TunerScreen(onBack: () -> Unit) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             r?.target?.note?.name(settings.notation) ?: "—",
-                            fontSize = if (settings.notation == com.karelisio.arpege.theory.Notation.LATIN) 46.sp else 60.sp,
+                            fontSize = if (settings.notation == Notation.LATIN) 46.sp else 60.sp,
                             fontWeight = FontWeight.Black,
                             color = if (inTune) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                         if (r != null) Text("${r.target.octave}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 10.dp))
+                    }
+                }
+            }
+            Crossfade(strobe, animationSpec = tween(if (reduce) 0 else 260), label = "gauge") { strobeMode ->
+                if (strobeMode) {
+                    Box(Modifier.fillMaxWidth().aspectRatio(1.15f)) {
+                        noteBadge(Modifier.align(Alignment.TopCenter).padding(top = 16.dp))
+                        StrobeBand(
+                            // Animations réduites : motif figé, décalé proportionnellement à l'écart.
+                            phase = { if (reduce) (reading?.cents ?: 0.0) / 100.0 else strobePhase.doubleValue },
+                            inTune = inTune,
+                            active = reading != null,
+                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(120.dp),
+                        )
+                    }
+                } else {
+                    BoxWithConstraints(Modifier.fillMaxWidth().aspectRatio(1.15f)) {
+                        val centerYdp = maxHeight * 0.66f
+                        Canvas(Modifier.fillMaxSize()) {
+                            val center = Offset(size.width / 2, centerYdp.toPx())
+                            val radius = minOf(size.width * 0.46f, center.y - 8.dp.toPx())
+                            val inner = noteSize.toPx() / 2 + 10.dp.toPx()
+                            for (cent in -50..50 step 5) {
+                                val major = cent % 10 == 0
+                                rotate(cent * 1.2f, pivot = center) {
+                                    drawLine(
+                                        color = if (abs(cent) <= 3) good else track,
+                                        start = Offset(center.x, center.y - radius),
+                                        end = Offset(center.x, center.y - radius + if (major) 16.dp.toPx() else 9.dp.toPx()),
+                                        strokeWidth = if (major) 5f else 3f, cap = StrokeCap.Round,
+                                    )
+                                }
+                            }
+                            rotate(needle.value * 1.2f, pivot = center) {
+                                drawLine(
+                                    color = if (inTune) good else primary,
+                                    start = Offset(center.x, center.y - inner),
+                                    end = Offset(center.x, center.y - radius + 26.dp.toPx()),
+                                    strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round,
+                                )
+                            }
+                        }
+                        Text("♭", style = MaterialTheme.typography.headlineSmall, color = track,
+                            modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = maxHeight * 0.34f))
+                        Text("♯", style = MaterialTheme.typography.headlineSmall, color = track,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(end = 8.dp, top = maxHeight * 0.34f))
+                        noteBadge(Modifier.align(Alignment.TopCenter).offset(y = centerYdp - noteSize / 2))
                     }
                 }
             }
@@ -252,6 +319,13 @@ fun TunerScreen(onBack: () -> Unit) {
             Text(
                 if (r == null) " " else String.format(Locale.FRANCE, "%.2f Hz  ·  cible %.2f Hz", r.freq, r.targetFreq),
                 style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            // Courbe de justesse des 5 dernières secondes.
+            CentsTraceChart(
+                segments = { traceRevision; trace.segments() },
+                nowMs = { if (reduce || frameMs == 0L) lastSampleMs else frameMs },
+                windowMs = trace.windowMs,
             )
 
             // Cordes (détection auto + note de référence au toucher).

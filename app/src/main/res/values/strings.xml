@@ -9,4 +9,5 @@
     <string name="shortcut_tuner_long">Ouvrir l\'accordeur</string>
     <string name="shortcut_metronome_short">Métronome</string>
     <string name="shortcut_metronome_long">Ouvrir le métronome</string>
+    <string name="notif_channel_reminder">Rappel de pratique</string>
 </resources>

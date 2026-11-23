@@ -9,6 +9,7 @@ import androidx.compose.material.icons.rounded.Hearing
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Piano
+import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Speed
@@ -31,6 +32,7 @@ object Routes {
     const val EAR = "ear"
     const val RHYTHM = "rhythm"
     const val SOLFEGE = "solfege"
+    const val SING = "sing"
     const val SETTINGS = "settings"
     const val PERMISSIONS = "permissions"
 
@@ -65,6 +67,7 @@ enum class Section(val route: String, val label: String, val icon: ImageVector, 
             ToolEntry(Routes.EAR, "Oreille", "Intervalles, accords, gammes, cadences", Icons.Rounded.Hearing),
             ToolEntry(Routes.RHYTHM, "Rythme", "Lis et tape la mesure", Icons.Rounded.TouchApp),
             ToolEntry(Routes.SOLFEGE, "Solfège", "Lecture en clés de sol, fa, ut", Icons.Rounded.MusicNote),
+            ToolEntry(Routes.SING, "Chante la note", "Justesse de la voix au micro", Icons.Rounded.RecordVoiceOver),
         ),
     ),
     JOURNAL(Routes.JOURNAL, "Journal", Icons.Rounded.CalendarMonth, emptyList());

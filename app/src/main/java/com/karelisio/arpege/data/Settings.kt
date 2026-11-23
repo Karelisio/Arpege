@@ -3,11 +3,13 @@ package com.karelisio.arpege.data
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.karelisio.arpege.theory.Instrument
 import com.karelisio.arpege.theory.Notation
@@ -18,6 +20,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore("settings")
+
+/** Préférences internes, jamais exportées ni importées. */
+private val NOT_EXPORTED = setOf("last_update_check", "onboarding_done")
 
 data class AppSettings(
     val notation: Notation = Notation.LATIN,
@@ -32,6 +37,9 @@ data class AppSettings(
     val trainer: SpeedTrainer = SpeedTrainer(),
     val timerOn: Boolean = false,
     val timerMinutes: Int = 20,
+    val tunerStrobe: Boolean = false,
+    val reminderEnabled: Boolean = false,
+    val reminderMinutes: Int = 19 * 60,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -49,6 +57,9 @@ class SettingsRepository(private val context: Context) {
         val trainer = stringPreferencesKey("metronome_trainer")
         val timerOn = booleanPreferencesKey("metronome_timer_on")
         val timerMinutes = intPreferencesKey("metronome_timer_minutes")
+        val tunerStrobe = booleanPreferencesKey("tuner_strobe")
+        val reminder = booleanPreferencesKey("reminder_enabled")
+        val reminderMinutes = intPreferencesKey("reminder_minutes")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { it.toSettings() }
@@ -66,6 +77,9 @@ class SettingsRepository(private val context: Context) {
         trainer = SpeedTrainer.decode(this[K.trainer]) ?: SpeedTrainer(),
         timerOn = this[K.timerOn] ?: false,
         timerMinutes = (this[K.timerMinutes] ?: 20).coerceIn(5, 60),
+        tunerStrobe = this[K.tunerStrobe] ?: false,
+        reminderEnabled = this[K.reminder] ?: false,
+        reminderMinutes = this[K.reminderMinutes] ?: (19 * 60),
     )
 
     suspend fun current(): AppSettings = settings.first()
@@ -83,6 +97,34 @@ class SettingsRepository(private val context: Context) {
     }
     suspend fun setTrainer(on: Boolean, v: SpeedTrainer) = context.dataStore.edit { it[K.trainerOn] = on; it[K.trainer] = v.encode() }
     suspend fun setTimer(on: Boolean, minutes: Int) = context.dataStore.edit { it[K.timerOn] = on; it[K.timerMinutes] = minutes.coerceIn(5, 60) }
+
+    suspend fun setTunerStrobe(v: Boolean) = context.dataStore.edit { it[K.tunerStrobe] = v }
+    suspend fun setReminder(enabled: Boolean, minuteOfDay: Int) = context.dataStore.edit {
+        it[K.reminder] = enabled
+        it[K.reminderMinutes] = minuteOfDay.coerceIn(0, 24 * 60 - 1)
+    }
+
+    /** Réglages exportables (sauvegarde) : toutes les préférences sauf l'état interne. */
+    suspend fun exportPreferences(): Map<String, Any> =
+        context.dataStore.data.first().asMap().mapKeys { it.key.name }.filterKeys { it !in NOT_EXPORTED }
+
+    /** Restaure des préférences exportées (types reconnus, et identiques à l'existant s'il y en a). */
+    suspend fun importPreferences(values: Map<String, Any>) = context.dataStore.edit { prefs ->
+        val existing = prefs.asMap().mapKeys { it.key.name }
+        values.filterKeys { it !in NOT_EXPORTED }.forEach { (name, v) ->
+            val old = existing[name]
+            if (old != null && old::class != v::class && !(old is Set<*> && v is Set<*>)) return@forEach
+            when (v) {
+                is Boolean -> prefs[booleanPreferencesKey(name)] = v
+                is Int -> prefs[intPreferencesKey(name)] = v
+                is Long -> prefs[longPreferencesKey(name)] = v
+                is Float -> prefs[floatPreferencesKey(name)] = v
+                is Double -> prefs[doublePreferencesKey(name)] = v
+                is String -> prefs[stringPreferencesKey(name)] = v
+                is Set<*> -> prefs[stringSetPreferencesKey(name)] = v.filterIsInstance<String>().toSet()
+            }
+        }
+    }
 
     suspend fun lastUpdateCheck(): Long = context.dataStore.data.first()[K.lastUpdateCheck] ?: 0L
     suspend fun setLastUpdateCheck(v: Long) = context.dataStore.edit { it[K.lastUpdateCheck] = v }

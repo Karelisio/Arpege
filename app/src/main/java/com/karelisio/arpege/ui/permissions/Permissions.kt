@@ -35,7 +35,7 @@ enum class AppPermission(val title: String, val rationale: String, val icon: Ima
     ),
     NOTIFICATIONS(
         "Notifications",
-        "Pour contrôler le métronome depuis la notification (pause, ±BPM) quand l'écran est éteint.",
+        "Pour contrôler le métronome depuis la notification (pause, ±BPM) quand l'écran est éteint, et pour le rappel quotidien de pratique.",
         Icons.Rounded.NotificationsActive,
     ),
     BATTERY(

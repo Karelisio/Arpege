@@ -11,12 +11,12 @@ Kotlin · Jetpack Compose · Material 3 Expressive · Room · DataStore · Glanc
 
 | Section | Contenu |
 |---|---|
-| Outils | Accordeur YIN (source UNPROCESSED si dispo), 7 accordages + chromatique, La4 432–446 Hz, note de référence · Métronome 20–300 BPM à l'échantillon près : grande roue crantée autour du tempo (toucher le centre = lecture/pause), ±1, tap tempo, subdivisions, accents par temps, mesures simples/composées/irrégulières, tempos favoris, accélération progressive (+N BPM toutes les M mesures), minuteur de séance (arrêt + vibration), service de premier plan + notification, tuile Réglages rapides, vibration · Tablatures ASCII, ChordPro et Guitar Pro (GP3–GP5) |
+| Outils | Accordeur YIN (source UNPROCESSED si dispo), 7 accordages + chromatique, La4 432–446 Hz, note de référence, courbe de justesse (5 s), mode stroboscope · Métronome 20–300 BPM à l'échantillon près : grande roue crantée autour du tempo (toucher le centre = lecture/pause), ±1, tap tempo, subdivisions, accents par temps, mesures simples/composées/irrégulières, tempos favoris, accélération progressive (+N BPM toutes les M mesures), minuteur de séance (arrêt + vibration), service de premier plan + notification, tuile Réglages rapides, vibration · Tablatures ASCII, ChordPro et Guitar Pro (GP3–GP5) |
 | Théorie | Accords générés par algorithme (20 types, positions classées par facilité, capo, diagrammes, doigtés, écoute plaquée/arpégée, favoris) · Gammes & modes (14 gammes, manche ou clavier, degrés colorés, accords diatoniques) · Cercle des quintes interactif |
-| Entraînement | Oreille (intervalles, accords, gammes, cadences ; niveaux, sélection d'éléments, répétition adaptative) · Rythme (lecture Bravura, tap calé sur l'horloge audio, écart en ms) · Solfège (clés de sol, fa, ut 3, ut 4 ; boutons ou clavier ; chrono) |
+| Entraînement | Oreille (intervalles, accords, gammes, cadences ; niveaux, sélection d'éléments, répétition adaptative) · Rythme (lecture Bravura, tap calé sur l'horloge audio, écart en ms) · Solfège (clés de sol, fa, ut 3, ut 4 ; boutons ou clavier ; chrono) · Chante la note (unisson ou intervalle montant/descendant, voix ou instrument au micro, tenue de 0,6 s à ±25 c, octave libre, jauge en direct) |
 | Journal | Séances auto (> 1 min) et manuelles, objectif hebdo, série, heatmap annuelle, stats par instrument et activité · Widget Glance |
 
-Réglages : notation Do Ré Mi / C D E, instrument principal, La4, objectif, vibration, autorisations, mises à jour.
+Réglages : notation Do Ré Mi / C D E, instrument principal, La4, objectif, rappel quotidien de pratique, sauvegarde (export / import JSON), vibration, autorisations, mises à jour.
 
 ## Deep links
 
@@ -91,6 +91,23 @@ L'appli interroge `releases/latest` au plus toutes les 6 h et propose la mise à
 - **Basse** dans Accords : fondamentale + intervalles sur le manche (pas de « positions »).
 - **Arpège au lancement** : trois notes jouées doucement en ouvrant l'appli, synchronisées avec le logo animé.
 - Les tablatures importées sont copiées dans la base locale (le fichier d'origine n'est plus nécessaire).
+- **Horloge de capture** : chaque estimation de hauteur est horodatée à l'échantillon près (position de lecture
+  de l'`AudioRecord` + `AudioTimestamp`, base `System.nanoTime`), comme l'instant de départ des sons joués :
+  la courbe de justesse défile sur cette horloge et « Chante la note » ignore le micro tant que la note de
+  référence sort du haut-parleur.
+- **Strobe** : le motif défile à 0,07 période/s par cent d'écart (droite = trop haut), immobile à ±0,5 c ;
+  trois bandes de plus en plus fines comme un disque de stroboscope. Animations réduites : motif figé, décalé
+  selon l'écart.
+- **Chante la note** : validation quand la hauteur lissée reste à ±25 c pendant 0,6 s (écarts < 120 ms tolérés :
+  attaque, vibrato, souffle) ; « octave libre » compare à l'octave près. Intervalles des niveaux de l'oreille.
+- **Rappel quotidien** : alarme `AlarmManager` sans dépendance (`setAndAllowWhileIdle`, livrée en moins d'une heure
+  sur Android 12+ ; alarme exacte sans autorisation sur Android 10–11), re-planifiée à chaque déclenchement,
+  au démarrage du téléphone, au changement d'heure et au lancement de l'appli. Pas de notification si l'on a
+  déjà pratiqué dans la journée.
+- **Sauvegarde** : fichier JSON (org.json) choisi via le sélecteur système, aucune autorisation de stockage.
+  Contient séances, favoris, stats d'exercices, tablatures et réglages. L'import, après confirmation, fusionne
+  sans doublons (séance = même début, durée, activité et instrument ; tablature = même contenu ; stats : on garde
+  la ligne qui a le plus de tentatives) et remplace les réglages ; réimporter le même fichier n'ajoute rien.
 
 ## Licences
 

@@ -36,6 +36,8 @@ interface StatDao {
     suspend fun get(exercise: String, item: String): ExerciseStat?
     @Query("DELETE FROM exercise_stat WHERE exercise = :exercise")
     suspend fun reset(exercise: String)
+    @Query("SELECT * FROM exercise_stat")
+    suspend fun everything(): List<ExerciseStat>
 }
 
 @Dao

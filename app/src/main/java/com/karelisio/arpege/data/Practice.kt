@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 enum class PracticeActivity(val label: String) {
     TUNER("Accordeur"), METRONOME("Métronome"), TABS("Tablatures"), CHORDS("Accords"),
     SCALES("Gammes"), CIRCLE("Cercle des quintes"), EAR("Oreille"), RHYTHM("Rythme"),
-    SOLFEGE("Solfège"), FREE("Pratique libre");
+    SOLFEGE("Solfège"), SING("Chant"), FREE("Pratique libre");
 
     companion object {
         fun of(key: String) = entries.firstOrNull { it.name == key } ?: FREE

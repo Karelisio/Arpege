@@ -43,7 +43,7 @@ class MetronomeController(private val context: Context) {
 
     fun start() {
         if (_state.value.playing) return
-        engine.start(_state.value.config)
+        if (!engine.start(_state.value.config)) return
         _state.value = _state.value.copy(playing = true)
         startedAt = System.currentTimeMillis()
         ContextCompat.startForegroundService(context, Intent(context, MetronomeService::class.java))

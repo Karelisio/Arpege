@@ -26,8 +26,9 @@ class MetronomeEngine(val sampleRate: Int) {
 
     val isRunning: Boolean get() = running
 
-    fun start(config: MetronomeConfig) {
-        if (running) { update(config); return }
+    /** Démarre le flux ; renvoie false si la sortie audio est indisponible. */
+    fun start(config: MetronomeConfig): Boolean {
+        if (running) { update(config); return true }
         val minBuf = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT)
         val t = AudioTrack.Builder()
             .setAudioAttributes(
@@ -47,6 +48,7 @@ class MetronomeEngine(val sampleRate: Int) {
             .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
             .setBufferSizeInBytes(minBuf * 2)
             .build()
+        if (t.state != AudioTrack.STATE_INITIALIZED) { t.release(); return false }
         framesWritten = 0
         // Premier clic légèrement différé pour laisser le flux démarrer.
         val s = MetronomeSchedule(sampleRate, config, originFrame = sampleRate / 20L)
@@ -54,7 +56,7 @@ class MetronomeEngine(val sampleRate: Int) {
         renderer.schedule = s
         track = t
         running = true
-        t.play()
+        if (runCatching { t.play() }.isFailure) { running = false; t.release(); track = null; schedule = null; return false }
         worker = thread(name = "metronome", priority = Thread.MAX_PRIORITY) {
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
             val chunk = FloatArray(256)
@@ -65,6 +67,7 @@ class MetronomeEngine(val sampleRate: Int) {
                 framesWritten += n
             }
         }
+        return true
     }
 
     /**

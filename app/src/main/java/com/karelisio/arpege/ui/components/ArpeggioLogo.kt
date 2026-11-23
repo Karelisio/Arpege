@@ -10,6 +10,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -25,12 +28,15 @@ import kotlinx.coroutines.launch
 
 /** Logo animé : trois croches liées qui montent en escalier, apparaissant en cascade. */
 @Composable
-fun ArpeggioLogo(size: Dp = 120.dp, color: Color = MaterialTheme.colorScheme.primary, key: Any = Unit) {
+fun ArpeggioLogo(size: Dp = 120.dp, color: Color = MaterialTheme.colorScheme.primary, key: Any = Unit, autoStart: Boolean = true) {
     val reduce = LocalReduceMotion.current
     val notes = remember { List(3) { Animatable(if (reduce) 1f else 0f) } }
     val beam = remember { Animatable(if (reduce) 1f else 0f) }
+    var first by remember { mutableStateOf(true) }
     LaunchedEffect(key) {
-        if (reduce) return@LaunchedEffect
+        val skip = first && !autoStart
+        first = false
+        if (reduce || skip) return@LaunchedEffect
         notes.forEach { it.snapTo(0f) }; beam.snapTo(0f)
         notes.forEachIndexed { i, a ->
             launch { delay(i * 140L); a.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMediumLow)) }

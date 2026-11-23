@@ -51,6 +51,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -106,4 +110,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
+}
+
+// Captures d'écran (Robolectric, rendu natif) : ./gradlew :app:testDebugUnitTest -Pscreenshots
+tasks.withType<Test>().configureEach {
+    if (!project.hasProperty("screenshots")) exclude("**/screenshots/**")
+    systemProperty("screenshots.dir", rootProject.layout.buildDirectory.dir("screenshots").get().asFile.absolutePath)
 }

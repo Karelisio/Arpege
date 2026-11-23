@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -183,17 +185,20 @@ fun TunerScreen(onBack: () -> Unit) {
             val primary = MaterialTheme.colorScheme.primary
             val good = MaterialTheme.colorScheme.tertiary
             val track = MaterialTheme.colorScheme.outlineVariant
-            Box(Modifier.fillMaxWidth().aspectRatio(1.25f), contentAlignment = Alignment.Center) {
+            val noteSize = 150.dp
+            BoxWithConstraints(Modifier.fillMaxWidth().aspectRatio(1.15f)) {
+                val centerYdp = maxHeight * 0.66f
                 Canvas(Modifier.fillMaxSize()) {
-                    val center = Offset(size.width / 2, size.height * 0.62f)
-                    val radius = size.width * 0.46f
+                    val center = Offset(size.width / 2, centerYdp.toPx())
+                    val radius = minOf(size.width * 0.46f, center.y - 8.dp.toPx())
+                    val inner = noteSize.toPx() / 2 + 10.dp.toPx()
                     for (cent in -50..50 step 5) {
                         val major = cent % 10 == 0
                         rotate(cent * 1.2f, pivot = center) {
                             drawLine(
                                 color = if (abs(cent) <= 3) good else track,
                                 start = Offset(center.x, center.y - radius),
-                                end = Offset(center.x, center.y - radius + if (major) 22f else 12f),
+                                end = Offset(center.x, center.y - radius + if (major) 16.dp.toPx() else 9.dp.toPx()),
                                 strokeWidth = if (major) 5f else 3f, cap = StrokeCap.Round,
                             )
                         }
@@ -201,17 +206,22 @@ fun TunerScreen(onBack: () -> Unit) {
                     rotate(needle.value * 1.2f, pivot = center) {
                         drawLine(
                             color = if (inTune) good else primary,
-                            start = Offset(center.x, center.y - radius * 0.22f),
-                            end = Offset(center.x, center.y - radius + 28f),
-                            strokeWidth = 9f, cap = StrokeCap.Round,
+                            start = Offset(center.x, center.y - inner),
+                            end = Offset(center.x, center.y - radius + 26.dp.toPx()),
+                            strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round,
                         )
                     }
                 }
+                Text("♭", style = MaterialTheme.typography.headlineSmall, color = track,
+                    modifier = Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = maxHeight * 0.34f))
+                Text("♯", style = MaterialTheme.typography.headlineSmall, color = track,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(end = 8.dp, top = maxHeight * 0.34f))
                 val shapeMorph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Flower) }
                 Box(
                     Modifier
-                        .padding(top = 64.dp)
-                        .size(150.dp)
+                        .align(Alignment.TopCenter)
+                        .offset(y = centerYdp - noteSize / 2)
+                        .size(noteSize)
                         .graphicsLayer {
                             scaleX = pulse.value; scaleY = pulse.value
                             shape = MorphShape(shapeMorph, morph, rotation = morph * 22f)

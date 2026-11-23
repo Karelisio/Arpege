@@ -48,7 +48,7 @@ enum class Section(val route: String, val label: String, val icon: ImageVector, 
         listOf(
             ToolEntry(Routes.TUNER, "Accordeur", "Détection précise, tous accordages", Icons.Rounded.Tune),
             ToolEntry(Routes.METRONOME, "Métronome", "20–300 BPM, mesures irrégulières", Icons.Rounded.Speed),
-            ToolEntry(Routes.TABS, "Tablatures", "ASCII et ChordPro, défilement auto", Icons.Rounded.LibraryMusic),
+            ToolEntry(Routes.TABS, "Tablatures", "ASCII, ChordPro, Guitar Pro", Icons.Rounded.LibraryMusic),
         ),
     ),
     THEORY(

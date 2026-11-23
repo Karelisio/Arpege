@@ -42,11 +42,11 @@ fun Fretboard(
         modifier
             .horizontalScroll(rememberScrollState())
             .width(fretW * (frets + 1))
-            .height((34 * n + 30).dp),
+            .height((34 * n + 44).dp),
     ) {
         val fw = fretW.toPx()
-        val top = 12.dp.toPx()
-        val sh = (size.height - top - 18.dp.toPx()) / (n - 1)
+        val top = 16.dp.toPx()
+        val sh = (size.height - top - 34.dp.toPx()) / (n - 1)
         val nutX = fw
         drawRect(wood, Offset(nutX, top - sh * 0.4f), androidx.compose.ui.geometry.Size(fw * frets, sh * (n - 1) + sh * 0.8f))
         // Repères de touche.

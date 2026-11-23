@@ -18,7 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
@@ -118,7 +118,7 @@ fun EarScreen(onBack: () -> Unit) {
             Modifier.fillMaxSize().padding(p).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            PrimaryTabRow(selectedTabIndex = mode.ordinal) {
+            PrimaryScrollableTabRow(selectedTabIndex = mode.ordinal, edgePadding = 0.dp) {
                 EarMode.entries.forEach { m -> Tab(selected = m == mode, onClick = { haptics.tick(); mode = m; level = 1 }, text = { Text(m.label, maxLines = 1) }) }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {

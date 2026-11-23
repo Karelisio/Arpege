@@ -7,6 +7,8 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -88,7 +90,9 @@ fun ArpegeTheme(
             motionScheme = if (reduceMotion) MotionScheme.standard() else MotionScheme.expressive(),
             shapes = ArpegeShapes,
             typography = ArpegeTypography,
-            content = content,
-        )
+        ) {
+            // Surface racine : couleur de contenu correcte (texte clair en mode sombre).
+            Surface(color = MaterialTheme.colorScheme.background, content = content)
+        }
     }
 }

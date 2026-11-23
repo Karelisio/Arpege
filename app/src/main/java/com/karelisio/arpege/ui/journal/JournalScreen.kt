@@ -113,7 +113,7 @@ fun JournalScreen(onSettings: () -> Unit) {
                 }
             }
             item {
-                Card(Modifier.cascadeIn(0), shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Card(Modifier.fillMaxWidth().cascadeIn(0), shape = MaterialTheme.shapes.extraLarge, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
                     Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         GoalRing(week.toFloat() / goal) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {

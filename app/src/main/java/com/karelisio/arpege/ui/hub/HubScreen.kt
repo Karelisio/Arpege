@@ -25,6 +25,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.karelisio.arpege.data.container
+import com.karelisio.arpege.theory.Pitch
+import com.karelisio.arpege.theory.dsp.Voice
+import com.karelisio.arpege.ui.components.ArpeggioLogo
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -52,7 +63,10 @@ fun HubScreen(section: Section, onOpen: (String) -> Unit, onSettings: () -> Unit
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(vertical = 16.dp)) {
-                    Text(section.label, style = MaterialTheme.typography.displayMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(section.label, style = MaterialTheme.typography.displayMedium)
+                        if (section == Section.TOOLS) LaunchArpeggio()
+                    }
                     Text(
                         taglines[section].orEmpty(),
                         style = MaterialTheme.typography.titleMedium,
@@ -97,4 +111,25 @@ fun HubScreen(section: Section, onOpen: (String) -> Unit, onSettings: () -> Unit
             }
         }
     }
+}
+
+private var launchArpeggioPlayed = false
+
+/** Signature « arpège » au lancement : trois notes qui s'égrènent, synchronisées avec le son. */
+@Composable
+private fun LaunchArpeggio() {
+    val c = LocalContext.current.container
+    var key by remember { mutableIntStateOf(0) }
+    val alreadyPlayed = remember { launchArpeggioPlayed }
+    LaunchedEffect(Unit) {
+        if (launchArpeggioPlayed) return@LaunchedEffect
+        launchArpeggioPlayed = true
+        val a4 = c.settings.current().a4.toDouble()
+        val notes = listOf("C5", "E5", "G5").mapNotNull { Pitch.parse(it) }
+        c.sound.playPitches(notes, Voice.PIANO, a4, strumMs = 140, noteSec = 1.4) { if (key == 0) key++ }
+        // Sortie audio indisponible : l'animation part quand même.
+        delay(700)
+        if (key == 0) key++
+    }
+    ArpeggioLogo(60.dp, MaterialTheme.colorScheme.primary, key = key, autoStart = alreadyPlayed)
 }

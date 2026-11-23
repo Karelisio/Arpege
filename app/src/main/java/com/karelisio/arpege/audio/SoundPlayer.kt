@@ -37,7 +37,7 @@ class SoundPlayer(context: Context) {
         stop()
         if (buffer.isEmpty()) return
         job = scope.launch {
-            val t = AudioTrack.Builder()
+            val t = runCatching { AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -54,10 +54,14 @@ class SoundPlayer(context: Context) {
                 .setTransferMode(AudioTrack.MODE_STATIC)
                 .setBufferSizeInBytes(buffer.size * 4)
                 .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
-                .build()
-            t.write(buffer, 0, buffer.size, AudioTrack.WRITE_BLOCKING)
+                .build() }.getOrNull() ?: return@launch
+            // Sortie audio indisponible (ressources, focus…) : on abandonne sans planter.
+            if (t.state != AudioTrack.STATE_INITIALIZED || t.write(buffer, 0, buffer.size, AudioTrack.WRITE_BLOCKING) < 0) {
+                t.release()
+                return@launch
+            }
             track = t
-            t.play()
+            if (runCatching { t.play() }.isFailure) { t.release(); track = null; return@launch }
             val ts = android.media.AudioTimestamp()
             var startNanos = System.nanoTime()
             for (i in 0 until 50) {
